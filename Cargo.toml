@@ -11,3 +11,4 @@ tokio = { version = "1", features = ["full"] }
 serde_json = "1.0"
 futures-util = "0.3.14"
 progress_bar = "1.0.2"
+urlencoding = "2.1.0"

@@ -22,13 +22,32 @@ async fn main() {
                 eprintln!("You need to input something for me to query.");
                 process::exit(1);
             });
-            query_mod(mmod).await.unwrap();
+            let nmod = query_mod(mmod).await.unwrap();
+
+            println!("I found {}, with the ID {}.", nmod.name, nmod.id);
+        }
+        "download" => {
+            let mmod = &args.get(2).unwrap_or_else(|| {
+                eprintln!("You need to input something for me to query.");
+                process::exit(1);
+            });
+            let nmod = query_mod(mmod).await.unwrap();
+
+            println!("I found {}, with the ID {}.", nmod.name, nmod.id);
+            print!("what minecraft version do you want? ");
+            stdout().flush().unwrap();
+
+            let mut game_version = String::new();
+            stdin().read_line(&mut game_version).unwrap();
+            game_version = game_version.replace("\n", "");
+
+            nmod.download(&game_version[..]).await.unwrap();
         }
         _ => process::exit(1),
     }
 }
 
-async fn query_mod(mmod: &str) -> Result<(), Box<dyn Error>> {
+async fn query_mod(mmod: &str) -> Result<Mod, Box<dyn Error>> {
     let client = reqwest::Client::builder().build()?;
 
     let mod_string = 
@@ -40,11 +59,7 @@ async fn query_mod(mmod: &str) -> Result<(), Box<dyn Error>> {
 
     let new_mod = Mod::new(json).await?;
 
-    println!("Found mod {}, with the ID {}", new_mod.name, new_mod.id);
-
-    new_mod.get_versions().await?;
-
-    Ok(())
+    Ok(new_mod)
 }
 
 #[derive(Debug)]
@@ -72,14 +87,7 @@ impl Mod {
         })
     }
 
-    async fn get_versions(&self) -> Result<(), Box<dyn Error>> {
-        print!("what minecraft version do you want? ");
-        stdout().flush().unwrap();
-
-        let mut game_version = String::new();
-        stdin().read_line(&mut game_version)?;
-        game_version = game_version.replace("\n", "");
-
+    async fn download(&self, game_version: &str) -> Result<(), Box<dyn Error>> {
         let modrinth_versions_url = format!(
             "https://api.modrinth.com/v2/versions?ids={:?}",
             self.versions
@@ -90,7 +98,7 @@ impl Mod {
         let modrinth_versions: Value = serde_json::from_str(&modrinth_versions_body[..])?;
 
         for version in modrinth_versions.as_array().unwrap() {
-            if format_to_vec_of_strings(version.get("game_versions").unwrap()).contains(&game_version)
+            if format_to_vec_of_strings(version.get("game_versions").unwrap()).contains(&game_version.to_string())
             {
 
                 let url = version["files"][0]["url"].as_str().unwrap();
@@ -99,7 +107,7 @@ impl Mod {
 
                 let reqwest_client = Client::new();
 
-                download_file(&reqwest_client, url, "/home/skye/testing/examplefile").await?;
+                download_file(&reqwest_client, url, &format!("{}/Downloads", env::var("HOME")?)[..]).await?;
             }
         }
 

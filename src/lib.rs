@@ -4,6 +4,7 @@ use reqwest::Client;
 use serde_json::Value;
 use std::string::String;
 use std::{error::Error, fs::File, io::Write, usize};
+use urlencoding::decode;
 
 pub fn format_to_vec_of_strings(data: &Value) -> Vec<String> {
     let mut new_data: Vec<String> = vec![];
@@ -22,6 +23,8 @@ pub fn format_to_vec_of_strings(data: &Value) -> Vec<String> {
 pub async fn download_file(client: &Client, url: &str, path: &str) -> Result<(), Box<dyn Error>> {
     let res = client.get(url).send().await.expect("failed to get the url");
 
+    let filename = decode(res.url().path().split("/").last().unwrap()).unwrap();
+
     let total_size = res
         .content_length()
         .expect("failed to get the content length");
@@ -29,7 +32,8 @@ pub async fn download_file(client: &Client, url: &str, path: &str) -> Result<(),
     let mut pb = ProgressBar::new(usize::try_from(total_size)?);
     pb.set_action("Downloading", Color::LightGreen, Style::Normal);
 
-    let mut file = File::create(path).expect("failed to create the file");
+    let mut file =
+        File::create(format!("{}/{}", path, filename)).expect("failed to create the file");
     let mut downloaded: u64 = 0;
     let mut stream = res.bytes_stream();
 
