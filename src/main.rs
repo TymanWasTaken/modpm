@@ -1,4 +1,4 @@
-use modpm::{format_to_vec_of_strings, download_file};
+use modpm::{format_to_vec_of_strings, download_file, polymc_installed};
 use reqwest::Client;
 use serde_json::Value;
 use std::{
@@ -42,6 +42,9 @@ async fn main() {
             game_version = game_version.replace("\n", "");
 
             nmod.download(&game_version[..]).await.unwrap();
+        }
+        "polymc" => {
+            println!("{:?}", polymc_installed());
         }
         _ => process::exit(1),
     }

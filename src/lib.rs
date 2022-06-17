@@ -2,6 +2,8 @@ use futures_util::StreamExt;
 use progress_bar::{pb::ProgressBar, Color, Style};
 use reqwest::Client;
 use serde_json::Value;
+use std::env;
+use std::path::Path;
 use std::string::String;
 use std::{error::Error, fs::File, io::Write, usize};
 use urlencoding::decode;
@@ -50,4 +52,10 @@ pub async fn download_file(client: &Client, url: &str, path: &str) -> Result<(),
     pb.finalize();
 
     Ok(())
+}
+
+pub fn polymc_installed() -> bool {
+    let path = format!("{}/.local/share/PolyMC", env::var("HOME").unwrap());
+
+    Path::new(&path).exists()
 }
