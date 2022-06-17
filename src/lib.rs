@@ -1,0 +1,49 @@
+use futures_util::StreamExt;
+use progress_bar::{pb::ProgressBar, Color, Style};
+use reqwest::Client;
+use serde_json::Value;
+use std::string::String;
+use std::{error::Error, fs::File, io::Write, usize};
+
+pub fn format_to_vec_of_strings(data: &Value) -> Vec<String> {
+    let mut new_data: Vec<String> = vec![];
+
+    if data.is_array() {
+        for items in data.as_array() {
+            for item in items {
+                new_data.push(item.to_string().replace("\"", ""));
+            }
+        }
+    }
+
+    new_data
+}
+
+pub async fn download_file(client: &Client, url: &str, path: &str) -> Result<(), Box<dyn Error>> {
+    let res = client.get(url).send().await.expect("failed to get the url");
+
+    let total_size = res
+        .content_length()
+        .expect("failed to get the content length");
+
+    let mut pb = ProgressBar::new(usize::try_from(total_size)?);
+    pb.set_action("Downloading", Color::LightGreen, Style::Normal);
+
+    let mut file = File::create(path).expect("failed to create the file");
+    let mut downloaded: u64 = 0;
+    let mut stream = res.bytes_stream();
+
+    while let Some(item) = stream.next().await {
+        let chunk = item.expect("error while downloading file");
+
+        file.write_all(&chunk).expect("error while writing to file");
+
+        let new = std::cmp::min(downloaded + (chunk.len() as u64), total_size);
+        downloaded = new;
+        pb.set_progression(usize::try_from(new)?);
+    }
+
+    pb.finalize();
+
+    Ok(())
+}
