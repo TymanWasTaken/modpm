@@ -1,52 +1,61 @@
-use modpm::{format_to_vec_of_strings, download_file, polymc_installed};
+use clap::{Command, arg};
+use modpm::{format_to_vec_of_strings, download_file, polymc_installed, ask_user};
 use reqwest::Client;
 use serde_json::Value;
 use std::{
     env,
     error::Error,
-    io::{stdin, stdout, Write},
-    process
 };
+
+fn cli() -> Command<'static> {
+    Command::new("modpm")
+        .about("A Minecraft mod package manager")
+        .subcommand_required(true)
+        .arg_required_else_help(true)
+        .allow_external_subcommands(false)
+        .subcommand(
+            Command::new("query")
+                .about("Queries a mod")
+                .arg(arg!(<MOD> "The mod to query."))
+                .arg_required_else_help(true)
+        )
+        .subcommand(
+            Command::new("download")
+                .about("Downloads a mod")
+                .arg(arg!(<MOD> "The mod to download."))
+                .arg_required_else_help(true)
+        )
+        .subcommand(
+            Command::new("polymc")
+                .about("testing lmao")
+        )
+}
 
 #[tokio::main]
 async fn main() {
-    let args: Vec<String> = env::args().collect();
-    let action = &args.get(1).unwrap_or_else(|| {
-        println!("hi yes epic help function :yesyes: i'll do this later\nmodpm query <modname> to make sure a mod exists");
-        process::exit(1);
-    });
+    let matches = cli().get_matches();
 
-    match &action[..] {
-        "query" => {
-            let mmod = &args.get(2).unwrap_or_else(|| {
-                eprintln!("You need to input something for me to query.");
-                process::exit(1);
-            });
-            let nmod = query_mod(mmod).await.unwrap();
+    match matches.subcommand() {
+        Some(("query", sub_matches)) => {
+            let mmod = sub_matches.get_one::<String>("MOD").expect("required");
+            let queried_mod = query_mod(mmod).await.unwrap();
 
-            println!("I found {}, with the ID {}.", nmod.name, nmod.id);
+            println!("I found {}, with the ID {}.", queried_mod.name, queried_mod.id);
         }
-        "download" => {
-            let mmod = &args.get(2).unwrap_or_else(|| {
-                eprintln!("You need to input something for me to query.");
-                process::exit(1);
-            });
-            let nmod = query_mod(mmod).await.unwrap();
-
-            println!("I found {}, with the ID {}.", nmod.name, nmod.id);
-            print!("what minecraft version do you want? ");
-            stdout().flush().unwrap();
-
-            let mut game_version = String::new();
-            stdin().read_line(&mut game_version).unwrap();
-            game_version = game_version.replace("\n", "");
-
-            nmod.download(&game_version[..]).await.unwrap();
+        Some(("download", sub_matches)) => {
+            let mmod = sub_matches.get_one::<String>("MOD").expect("required");
+            let queried_mod = query_mod(mmod).await.unwrap();
+            
+            println!("I found {}, with the ID {}.", queried_mod.name, queried_mod.id);
+            
+            let game_version = ask_user("What Minecraft version would you like? ");
+            
+            queried_mod.download(&game_version).await.unwrap();
         }
-        "polymc" => {
-            println!("{:?}", polymc_installed());
+        Some(("polymc", _)) => {
+            println!("{}", polymc_installed());
         }
-        _ => process::exit(1),
+        _ => unreachable!()
     }
 }
 

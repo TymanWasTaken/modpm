@@ -3,6 +3,7 @@ use progress_bar::{pb::ProgressBar, Color, Style};
 use reqwest::Client;
 use serde_json::Value;
 use std::env;
+use std::io::{stdin, stdout};
 use std::path::Path;
 use std::string::String;
 use std::{error::Error, fs::File, io::Write, usize};
@@ -58,4 +59,15 @@ pub fn polymc_installed() -> bool {
     let path = format!("{}/.local/share/PolyMC", env::var("HOME").unwrap());
 
     Path::new(&path).exists()
+}
+
+pub fn ask_user(query: &str) -> String {
+    let mut response = String::new();
+    print!("{}", query);
+    stdout().flush().unwrap();
+
+    stdin().read_line(&mut response).unwrap();
+    response = response.replace("\n", "");
+
+    response
 }
