@@ -12,7 +12,7 @@ use std::{
 async fn main() {
     let args: Vec<String> = env::args().collect();
     let action = &args.get(1).unwrap_or_else(|| {
-        println!("help function");
+        println!("hi yes epic help function :yesyes: i'll do this later\nmodpm query <modname> to make sure a mod exists");
         process::exit(1);
     });
 
