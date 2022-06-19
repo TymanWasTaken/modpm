@@ -1,5 +1,5 @@
 use clap::{Command, arg};
-use modpm::{format_to_vec_of_strings, download_file, polymc_installed, ask_user};
+use modpm::{format_to_vec_of_strings, download_file, ask_user, PolyMC};
 use reqwest::Client;
 use serde_json::Value;
 use std::{
@@ -53,7 +53,7 @@ async fn main() {
             queried_mod.download(&game_version).await.unwrap();
         }
         Some(("polymc", _)) => {
-            println!("{}", polymc_installed());
+            PolyMC::get_instances().unwrap();
         }
         _ => unreachable!()
     }

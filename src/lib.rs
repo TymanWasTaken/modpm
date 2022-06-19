@@ -2,10 +2,11 @@ use futures_util::StreamExt;
 use progress_bar::{pb::ProgressBar, Color, Style};
 use reqwest::Client;
 use serde_json::Value;
-use std::env;
+use std::collections::HashMap;
 use std::io::{stdin, stdout};
 use std::path::Path;
 use std::string::String;
+use std::{env, fs};
 use std::{error::Error, fs::File, io::Write, usize};
 use urlencoding::decode;
 
@@ -55,12 +56,6 @@ pub async fn download_file(client: &Client, url: &str, path: &str) -> Result<(),
     Ok(())
 }
 
-pub fn polymc_installed() -> bool {
-    let path = format!("{}/.local/share/PolyMC", env::var("HOME").unwrap());
-
-    Path::new(&path).exists()
-}
-
 pub fn ask_user(query: &str) -> String {
     let mut response = String::new();
     print!("{}", query);
@@ -70,4 +65,70 @@ pub fn ask_user(query: &str) -> String {
     response = response.replace("\n", "");
 
     response
+}
+
+pub fn parse_cfg_file(filepath: String) -> HashMap<String, String> {
+    let file = fs::read_to_string(filepath).unwrap();
+    let file_split: Vec<&str> = file.split("\n").filter(|c| *c != "").collect();
+
+    let mut map: HashMap<String, String> = HashMap::new();
+
+    for data in file_split {
+        let split_data: Vec<&str> = data.split("=").collect();
+
+        map.insert(split_data[0].to_string(), split_data[1].to_string());
+    }
+
+    map
+}
+
+pub struct PolyMC {}
+
+impl PolyMC {
+    pub fn is_installed() -> bool {
+        let path = format!("{}/.local/share/PolyMC", env::var("HOME").unwrap());
+
+        Path::new(&path).exists()
+    }
+
+    pub fn get_instances() -> Result<(), Box<dyn Error>> {
+        let poly_dir = format!("{}/.local/share/PolyMC", env::var("HOME")?);
+        let paths = fs::read_dir(&poly_dir)?;
+
+        for path in paths {
+            if path?.path().as_path() == Path::new(&format!("{}/instances", poly_dir)) {
+                let instance_dirs_wtf = fs::read_dir(&format!("{}/instances", poly_dir))?;
+                let mut instance_dirs = vec![];
+                for dir in instance_dirs_wtf {
+                    instance_dirs.push(dir.unwrap());
+                }
+
+                instance_dirs = instance_dirs
+                    .into_iter()
+                    .filter(|t| {
+                        t.file_name() != ".LAUNCHER_TEMP"
+                            && t.file_name() != "_LAUNCHER_TEMP"
+                            && t.file_type().unwrap().is_dir()
+                    })
+                    .collect();
+
+                for dir in instance_dirs {
+                    println!(
+                        "Directory: {:?}, Name: {:?}",
+                        dir.file_type().unwrap().is_dir(),
+                        dir.file_name()
+                    );
+
+                    println!(
+                        "{:?}",
+                        parse_cfg_file(format!("{}/instance.cfg", dir.path().display()))
+                            .get("name")
+                            .unwrap()
+                    )
+                }
+            }
+        }
+
+        Ok(())
+    }
 }
