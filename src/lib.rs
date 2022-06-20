@@ -67,7 +67,10 @@ pub fn ask_user(query: &str) -> String {
 
     stdin().read_line(&mut response).unwrap();
 
-    response[..response.len() - 1].to_string()
+    // Removes the last char from the string (\n)
+    response.pop();
+    
+    response.to_string()
 }
 
 pub fn parse_cfg_file(filepath: String) -> HashMap<String, String> {
@@ -91,8 +94,30 @@ impl PolyMC {
     pub fn get_directory() -> String {
         match std::env::consts::OS {
             "linux" => {
-                return format!(
+                let home_dir = env::var("HOME").expect("Couldn't get the $HOME env var.");
+                // Check if the main dir (~/.local/share/PolyMC) exists
+                let main_dir = format!(
                     "{}/.local/share/PolyMC",
+                    home_dir
+                );
+                let main_dir = Path::new(&main_dir);
+                if main_dir.exists() {
+                    return main_dir.to_str().expect("Unable to convert Path instance to &str").to_string();
+                }
+                // Otherwise, check for the flatpak directory
+                let flatpak_dir = &format!(
+                    "{}/.var/app/org.polymc.PolyMC/data/PolyMC",
+                    home_dir
+                );
+                let flatpak_dir = Path::new(&flatpak_dir);
+                if flatpak_dir.exists() {
+                    return flatpak_dir.to_str().expect("Unable to convert Path instance to &str").to_string();
+                }
+                panic!("The OS is linux, but neither the default nor the flatpak PolyMC folder locations could be found");
+            }
+            "macos" => {
+                return format!(
+                    "{}/Library/Application Support/PolyMC",
                     env::var("HOME").expect("Couldn't get the $HOME env var.")
                 )
             }
