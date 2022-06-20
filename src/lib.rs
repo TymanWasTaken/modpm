@@ -115,6 +115,12 @@ impl PolyMC {
                 }
                 panic!("The OS is linux, but neither the default nor the flatpak PolyMC folder locations could be found");
             }
+            "macos" => {
+                return format!(
+                    "{}/Library/Application Support/PolyMC",
+                    env::var("HOME").expect("Couldn't get the $HOME env var.")
+                )
+            }
             "windows" => {
                 return format!(
                     "{}\\AppData\\Roaming\\PolyMC",
