@@ -1,6 +1,7 @@
 use futures_util::StreamExt;
 use progress_bar::{pb::ProgressBar, Color, Style};
 use reqwest::Client;
+use serde::Deserialize;
 use serde_json::Value;
 use std::collections::HashMap;
 use std::io::{stdin, stdout};
@@ -85,14 +86,18 @@ pub fn parse_cfg_file(filepath: String) -> HashMap<String, String> {
 pub struct PolyMC {}
 
 impl PolyMC {
+    pub fn get_directory() -> String {
+        format!("{}/.local/share/PolyMC", env::var("HOME").unwrap())
+    }
+
     pub fn is_installed() -> bool {
-        let path = format!("{}/.local/share/PolyMC", env::var("HOME").unwrap());
+        let path = PolyMC::get_directory();
 
         Path::new(&path).exists()
     }
 
     pub fn get_instances() -> Result<(), Box<dyn Error>> {
-        let poly_dir = format!("{}/.local/share/PolyMC", env::var("HOME")?);
+        let poly_dir = PolyMC::get_directory();
         let paths = fs::read_dir(&poly_dir)?;
 
         for path in paths {
@@ -113,17 +118,37 @@ impl PolyMC {
                     .collect();
 
                 for dir in instance_dirs {
-                    println!(
-                        "Directory: {:?}, Name: {:?}",
-                        dir.file_type().unwrap().is_dir(),
-                        dir.file_name()
-                    );
+                    println!("Directory name: {:?}", dir.file_name());
+                    let instance_config =
+                        parse_cfg_file(format!("{}/instance.cfg", dir.path().display()));
+                    let mmc_pack: PolyInstanceDataJson = serde_json::from_str(
+                        &fs::read_to_string(format!("{}/mmc-pack.json", dir.path().display()))
+                            .expect("Failed to read the JSON data for a PolyMC instance.")[..],
+                    )
+                    .expect("Failed to parse the JSON data for a PolyMC instance.");
+
+                    let game_version = mmc_pack
+                        .components
+                        .into_iter()
+                        .find(|c| c.uid == "net.minecraft")
+                        .expect("Couldn't find a Minecraft component in a PolyMC instance.")
+                        .version;
+
+                    let modloader_id_option = mmc_pack.components.into_iter().find(|c| {
+                        c.uid == "net.fabricmc.fabric-loader"
+                            || c.uid == "org.quiltmc.quilt-loader"
+                            || c.uid == "net.minecraftforge"
+                    });
+
+                    println!("{:?}", modloader_id_option);
+
+                    let instance_name = instance_config
+                        .get("name")
+                        .expect("A PolyMC instance.cfg didn't have a name field.");
 
                     println!(
-                        "{:?}",
-                        parse_cfg_file(format!("{}/instance.cfg", dir.path().display()))
-                            .get("name")
-                            .unwrap()
+                        "Instance name: {}\nGame version: {}\n",
+                        instance_name, game_version
                     )
                 }
             }
@@ -131,4 +156,20 @@ impl PolyMC {
 
         Ok(())
     }
+}
+
+pub struct PolyInstance {
+    pub name: String,
+    pub folder_name: String,
+    pub game_version: String,
+    pub modloader: Option<String>,
+}
+#[derive(Deserialize, Debug)]
+pub struct PolyInstanceDataComponent {
+    pub uid: String,
+    pub version: String,
+}
+#[derive(Deserialize)]
+pub struct PolyInstanceDataJson {
+    pub components: Vec<PolyInstanceDataComponent>,
 }
