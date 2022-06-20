@@ -99,7 +99,7 @@ impl PolyMC {
             }
             "windows" => {
                 return format!(
-                    "{}\\AppData\\Local\\Programs\\PolyMC",
+                    "{}\\AppData\\Roaming\\PolyMC",
                     env::var("HOME").expect("Couldn't get the $HOME env var.")
                 )
             }
