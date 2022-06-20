@@ -1,7 +1,10 @@
+pub mod data_structs;
+
+use data_structs::PolyInstanceDataJson;
+
 use futures_util::StreamExt;
 use progress_bar::{pb::ProgressBar, Color, Style};
 use reqwest::Client;
-use serde::Deserialize;
 use serde_json::Value;
 use std::collections::HashMap;
 use std::io::{stdin, stdout};
@@ -127,49 +130,47 @@ impl PolyMC {
                     )
                     .expect("Failed to parse the JSON data for a PolyMC instance.");
 
-                    let game_version = mmc_pack
-                        .components
+                    let instance_components = &mmc_pack.components;
+                    let game_version = &instance_components
                         .into_iter()
                         .find(|c| c.uid == "net.minecraft")
                         .expect("Couldn't find a Minecraft component in a PolyMC instance.")
                         .version;
 
-                    let modloader_id_option = mmc_pack.components.into_iter().find(|c| {
+                    let modloader_id_option = instance_components.into_iter().find(|c| {
                         c.uid == "net.fabricmc.fabric-loader"
                             || c.uid == "org.quiltmc.quilt-loader"
                             || c.uid == "net.minecraftforge"
                     });
-
-                    println!("{:?}", modloader_id_option);
 
                     let instance_name = instance_config
                         .get("name")
                         .expect("A PolyMC instance.cfg didn't have a name field.");
 
                     println!(
-                        "Instance name: {}\nGame version: {}\n",
-                        instance_name, game_version
-                    )
+                        "Instance name: {}\nGame version: {}\nLoader type: {}",
+                        instance_name,
+                        game_version,
+                        match &modloader_id_option {
+                            Some(modloader_id) => PolyMC::get_loader_name(&modloader_id.uid)
+                                .expect("Unable to determine loader name from uid"),
+                            None => "Undetected",
+                        }
+                    );
+                    println!();
                 }
             }
         }
 
         Ok(())
     }
-}
 
-pub struct PolyInstance {
-    pub name: String,
-    pub folder_name: String,
-    pub game_version: String,
-    pub modloader: Option<String>,
-}
-#[derive(Deserialize, Debug)]
-pub struct PolyInstanceDataComponent {
-    pub uid: String,
-    pub version: String,
-}
-#[derive(Deserialize)]
-pub struct PolyInstanceDataJson {
-    pub components: Vec<PolyInstanceDataComponent>,
+    pub fn get_loader_name(uid: &str) -> Option<&str> {
+        match uid {
+            "net.fabricmc.fabric-loader" => Some("Fabric"),
+            "org.quiltmc.quilt-loader" => Some("Quilt"),
+            "net.minecraftforge" => Some("Forge"),
+            _ => None,
+        }
+    }
 }
