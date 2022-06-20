@@ -23,6 +23,7 @@ fn cli() -> Command<'static> {
                 .arg_required_else_help(true),
         )
         .subcommand(Command::new("polymc").about("testing lmao"))
+        .subcommand(Command::new("test").about("even more testing"))
 }
 
 #[tokio::main]
@@ -54,6 +55,9 @@ async fn main() {
         }
         Some(("polymc", _)) => {
             PolyMC::get_instances().unwrap();
+        }
+        Some(("test", _)) => {
+            println!("{}", std::env::consts::OS);
         }
         _ => unreachable!(),
     }
