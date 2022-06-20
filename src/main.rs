@@ -54,7 +54,7 @@ async fn main() {
             queried_mod.download(&game_version).await.unwrap();
         }
         Some(("polymc", _)) => {
-            PolyMC::get_instances().unwrap();
+            println!("{:?}", PolyMC::get_instances().unwrap());
         }
         Some(("test", _)) => {
             println!("{}", PolyMC::get_directory());

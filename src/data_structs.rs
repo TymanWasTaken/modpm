@@ -1,5 +1,6 @@
 use serde::Deserialize;
 
+#[derive(Debug)]
 pub struct PolyInstance {
     pub name: String,
     pub folder_name: String,
