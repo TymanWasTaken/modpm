@@ -90,7 +90,26 @@ pub struct PolyMC {}
 
 impl PolyMC {
     pub fn get_directory() -> String {
-        format!("{}/.local/share/PolyMC", env::var("HOME").unwrap())
+        match std::env::consts::OS {
+            "linux" => {
+                return format!(
+                    "{}/.local/share/PolyMC",
+                    env::var("HOME").expect("Couldn't get the $HOME env var.")
+                )
+            }
+            "windows" => {
+                return format!(
+                    "{}/AppData/Local/Programs/PolyMC",
+                    env::var("HOME").expect("Couldn't get the $HOME env var.")
+                )
+            }
+            _ => {
+                return format!(
+                    "{}/.local/share/PolyMC",
+                    env::var("HOME").expect("Couldn't get the $HOME env var.")
+                )
+            }
+        }
     }
 
     pub fn is_installed() -> bool {
