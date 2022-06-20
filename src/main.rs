@@ -1,11 +1,8 @@
-use clap::{Command, arg};
-use modpm::{format_to_vec_of_strings, download_file, ask_user, PolyMC};
+use clap::{arg, Command};
+use modpm::{ask_user, download_file, format_to_vec_of_strings, PolyMC};
 use reqwest::Client;
 use serde_json::Value;
-use std::{
-    env,
-    error::Error,
-};
+use std::{env, error::Error};
 
 fn cli() -> Command<'static> {
     Command::new("modpm")
@@ -17,18 +14,15 @@ fn cli() -> Command<'static> {
             Command::new("query")
                 .about("Queries a mod")
                 .arg(arg!(<MOD> "The mod to query."))
-                .arg_required_else_help(true)
+                .arg_required_else_help(true),
         )
         .subcommand(
             Command::new("download")
                 .about("Downloads a mod")
                 .arg(arg!(<MOD> "The mod to download."))
-                .arg_required_else_help(true)
+                .arg_required_else_help(true),
         )
-        .subcommand(
-            Command::new("polymc")
-                .about("testing lmao")
-        )
+        .subcommand(Command::new("polymc").about("testing lmao"))
 }
 
 #[tokio::main]
@@ -40,30 +34,35 @@ async fn main() {
             let mmod = sub_matches.get_one::<String>("MOD").expect("required");
             let queried_mod = query_mod(mmod).await.unwrap();
 
-            println!("I found {}, with the ID {}.", queried_mod.name, queried_mod.id);
+            println!(
+                "I found {}, with the ID {}.",
+                queried_mod.name, queried_mod.id
+            );
         }
         Some(("download", sub_matches)) => {
             let mmod = sub_matches.get_one::<String>("MOD").expect("required");
             let queried_mod = query_mod(mmod).await.unwrap();
-            
-            println!("I found {}, with the ID {}.", queried_mod.name, queried_mod.id);
-            
+
+            println!(
+                "I found {}, with the ID {}.",
+                queried_mod.name, queried_mod.id
+            );
+
             let game_version = ask_user("What Minecraft version would you like? ");
-            
+
             queried_mod.download(&game_version).await.unwrap();
         }
         Some(("polymc", _)) => {
             PolyMC::get_instances().unwrap();
         }
-        _ => unreachable!()
+        _ => unreachable!(),
     }
 }
 
 async fn query_mod(mmod: &str) -> Result<Mod, Box<dyn Error>> {
     let client = reqwest::Client::builder().build()?;
 
-    let mod_string = 
-    format!("https://api.modrinth.com/v2/search?limit=1&facets=[[\"categories:fabric\"], [\"project_type:mod\"]]&query={}", mmod);
+    let mod_string = format!("https://api.modrinth.com/v2/search?limit=1&facets=[[\"categories:fabric\"], [\"project_type:mod\"]]&query={}", mmod);
     let res = client.get(mod_string).send().await?;
 
     let body = res.text().await?;
@@ -110,16 +109,24 @@ impl Mod {
         let modrinth_versions: Value = serde_json::from_str(&modrinth_versions_body[..])?;
 
         for version in modrinth_versions.as_array().unwrap() {
-            if format_to_vec_of_strings(version.get("game_versions").unwrap()).contains(&game_version.to_string())
+            if format_to_vec_of_strings(version.get("game_versions").unwrap())
+                .contains(&game_version.to_string())
             {
-
                 let url = version["files"][0]["url"].as_str().unwrap();
-                println!("{} matches the game version that you want", version.get("name").unwrap().as_str().unwrap());
+                println!(
+                    "{} matches the game version that you want",
+                    version.get("name").unwrap().as_str().unwrap()
+                );
                 println!("Its download URL is {}", url);
 
                 let reqwest_client = Client::new();
 
-                download_file(&reqwest_client, url, &format!("{}/Downloads", env::var("HOME")?)[..]).await?;
+                download_file(
+                    &reqwest_client,
+                    url,
+                    &format!("{}/Downloads", env::var("HOME")?)[..],
+                )
+                .await?;
             }
         }
 
