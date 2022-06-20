@@ -66,9 +66,8 @@ pub fn ask_user(query: &str) -> String {
     stdout().flush().unwrap();
 
     stdin().read_line(&mut response).unwrap();
-    response = response.replace("\n", "");
 
-    response
+    response[..response.len() - 1].to_string()
 }
 
 pub fn parse_cfg_file(filepath: String) -> HashMap<String, String> {
@@ -142,7 +141,6 @@ impl PolyMC {
                     .collect();
 
                 for dir in instance_dirs {
-                    println!("Directory name: {:?}", dir.file_name());
                     let instance_config =
                         parse_cfg_file(format!("{}/instance.cfg", dir.path().display()));
                     let mmc_pack: PolyInstanceDataJson = serde_json::from_str(
@@ -167,18 +165,6 @@ impl PolyMC {
                     let instance_name = instance_config
                         .get("name")
                         .expect("A PolyMC instance.cfg didn't have a name field.");
-
-                    println!(
-                        "Instance name: {}\nGame version: {}\nLoader type: {}",
-                        instance_name,
-                        game_version,
-                        match &modloader_id_option {
-                            Some(modloader_id) => PolyMC::get_loader_name(&modloader_id.uid)
-                                .expect("Unable to determine loader name from uid"),
-                            None => "vanilla",
-                        }
-                    );
-                    println!();
 
                     let modloader_id = match &modloader_id_option {
                         Some(modloader_id) => PolyMC::get_loader_name(&modloader_id.uid)
