@@ -57,7 +57,7 @@ async fn main() {
             PolyMC::get_instances().unwrap();
         }
         Some(("test", _)) => {
-            println!("{}", std::env::consts::OS);
+            println!("{}", PolyMC::get_directory());
         }
         _ => unreachable!(),
     }
