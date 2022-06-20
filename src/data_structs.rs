@@ -4,7 +4,7 @@ pub struct PolyInstance {
     pub name: String,
     pub folder_name: String,
     pub game_version: String,
-    pub modloader: Option<String>,
+    pub modloader: String,
 }
 #[derive(Deserialize, Debug)]
 pub struct PolyInstanceDataComponent {

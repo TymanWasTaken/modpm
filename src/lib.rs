@@ -1,6 +1,6 @@
 pub mod data_structs;
 
-use data_structs::PolyInstanceDataJson;
+use data_structs::{PolyInstance, PolyInstanceDataJson};
 
 use futures_util::StreamExt;
 use progress_bar::{pb::ProgressBar, Color, Style};
@@ -99,9 +99,11 @@ impl PolyMC {
         Path::new(&path).exists()
     }
 
-    pub fn get_instances() -> Result<(), Box<dyn Error>> {
+    pub fn get_instances() -> Result<Vec<PolyInstance>, Box<dyn Error>> {
         let poly_dir = PolyMC::get_directory();
         let paths = fs::read_dir(&poly_dir)?;
+
+        let mut return_instances: Vec<PolyInstance> = vec![];
 
         for path in paths {
             if path?.path().as_path() == Path::new(&format!("{}/instances", poly_dir)) {
@@ -154,22 +156,35 @@ impl PolyMC {
                         match &modloader_id_option {
                             Some(modloader_id) => PolyMC::get_loader_name(&modloader_id.uid)
                                 .expect("Unable to determine loader name from uid"),
-                            None => "Undetected",
+                            None => "vanilla",
                         }
                     );
                     println!();
+
+                    let modloader_id = match &modloader_id_option {
+                        Some(modloader_id) => PolyMC::get_loader_name(&modloader_id.uid)
+                            .expect("Unable to determine loader name from uid"),
+                        None => "vanilla",
+                    };
+
+                    return_instances.push(PolyInstance {
+                        name: instance_name.to_string(),
+                        modloader: modloader_id.to_string(),
+                        game_version: game_version.to_string(),
+                        folder_name: dir.file_name().to_str().expect("something went wrong when converting an OsString to a String lmao i have no idea how this went wrong").to_string(),
+                    });
                 }
             }
         }
 
-        Ok(())
+        Ok(return_instances)
     }
 
     pub fn get_loader_name(uid: &str) -> Option<&str> {
         match uid {
-            "net.fabricmc.fabric-loader" => Some("Fabric"),
-            "org.quiltmc.quilt-loader" => Some("Quilt"),
-            "net.minecraftforge" => Some("Forge"),
+            "net.fabricmc.fabric-loader" => Some("fabric"),
+            "org.quiltmc.quilt-loader" => Some("quilt"),
+            "net.minecraftforge" => Some("forge"),
             _ => None,
         }
     }
