@@ -67,7 +67,10 @@ pub fn ask_user(query: &str) -> String {
 
     stdin().read_line(&mut response).unwrap();
 
-    response[..response.len() - 1].to_string()
+    // Removes the last char from the string (\n)
+    response.pop();
+    
+    response.to_string()
 }
 
 pub fn parse_cfg_file(filepath: String) -> HashMap<String, String> {
