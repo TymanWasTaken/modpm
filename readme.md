@@ -1,7 +1,4 @@
 # modpm
+**mod** **p**ackage **m**anager
 
-i don't play minecraft anymore
-
-don't know why i'm making this
-
-but i am so here it is
+yes it's a bad name. oh, you're mad about that? i present [pacman](https://wiki.archlinux.org/title/Pacman): **pac**kage **man**ager.
