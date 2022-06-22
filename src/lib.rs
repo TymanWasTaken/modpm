@@ -69,7 +69,7 @@ pub fn ask_user(query: &str) -> String {
 
     // Removes the last char from the string (\n)
     response.pop();
-    
+
     response.to_string()
 }
 
@@ -96,22 +96,22 @@ impl PolyMC {
             "linux" => {
                 let home_dir = env::var("HOME").expect("Couldn't get the $HOME env var.");
                 // Check if the main dir (~/.local/share/PolyMC) exists
-                let main_dir = format!(
-                    "{}/.local/share/PolyMC",
-                    home_dir
-                );
+                let main_dir = format!("{}/.local/share/PolyMC", home_dir);
                 let main_dir = Path::new(&main_dir);
                 if main_dir.exists() {
-                    return main_dir.to_str().expect("Unable to convert Path instance to &str").to_string();
+                    return main_dir
+                        .to_str()
+                        .expect("Unable to convert Path instance to &str")
+                        .to_string();
                 }
                 // Otherwise, check for the flatpak directory
-                let flatpak_dir = &format!(
-                    "{}/.var/app/org.polymc.PolyMC/data/PolyMC",
-                    home_dir
-                );
+                let flatpak_dir = &format!("{}/.var/app/org.polymc.PolyMC/data/PolyMC", home_dir);
                 let flatpak_dir = Path::new(&flatpak_dir);
                 if flatpak_dir.exists() {
-                    return flatpak_dir.to_str().expect("Unable to convert Path instance to &str").to_string();
+                    return flatpak_dir
+                        .to_str()
+                        .expect("Unable to convert Path instance to &str")
+                        .to_string();
                 }
                 panic!("The OS is linux, but neither the default nor the flatpak PolyMC folder locations could be found");
             }
@@ -144,67 +144,63 @@ impl PolyMC {
 
     pub fn get_instances() -> Result<Vec<PolyInstance>, Box<dyn Error>> {
         let poly_dir = PolyMC::get_directory();
-        let paths = fs::read_dir(&poly_dir)?;
 
         let mut return_instances: Vec<PolyInstance> = vec![];
+        let mut num = 0;
+        let instance_dirs_wtf = fs::read_dir(&format!("{}/instances", poly_dir))?;
+        let mut instance_dirs = vec![];
+        for dir in instance_dirs_wtf {
+            instance_dirs.push(dir.unwrap());
+        }
 
-        for path in paths {
-            if path?.path().as_path() == Path::new(&format!("{}/instances", poly_dir)) {
-                let instance_dirs_wtf = fs::read_dir(&format!("{}/instances", poly_dir))?;
-                let mut instance_dirs = vec![];
-                for dir in instance_dirs_wtf {
-                    instance_dirs.push(dir.unwrap());
-                }
+        instance_dirs = instance_dirs
+            .into_iter()
+            .filter(|t| {
+                t.file_name() != ".LAUNCHER_TEMP"
+                    && t.file_name() != "_LAUNCHER_TEMP"
+                    && t.file_type().unwrap().is_dir()
+            })
+            .collect();
 
-                instance_dirs = instance_dirs
-                    .into_iter()
-                    .filter(|t| {
-                        t.file_name() != ".LAUNCHER_TEMP"
-                            && t.file_name() != "_LAUNCHER_TEMP"
-                            && t.file_type().unwrap().is_dir()
-                    })
-                    .collect();
+        for dir in instance_dirs {
+            num = num + 1;
+            let instance_config = parse_cfg_file(format!("{}/instance.cfg", dir.path().display()));
+            let mmc_pack: PolyInstanceDataJson = serde_json::from_str(
+                &fs::read_to_string(format!("{}/mmc-pack.json", dir.path().display()))
+                    .expect("Failed to read the JSON data for a PolyMC instance.")[..],
+            )
+            .expect("Failed to parse the JSON data for a PolyMC instance.");
 
-                for dir in instance_dirs {
-                    let instance_config =
-                        parse_cfg_file(format!("{}/instance.cfg", dir.path().display()));
-                    let mmc_pack: PolyInstanceDataJson = serde_json::from_str(
-                        &fs::read_to_string(format!("{}/mmc-pack.json", dir.path().display()))
-                            .expect("Failed to read the JSON data for a PolyMC instance.")[..],
-                    )
-                    .expect("Failed to parse the JSON data for a PolyMC instance.");
+            let instance_components = &mmc_pack.components;
+            let game_version = &instance_components
+                .into_iter()
+                .find(|c| c.uid == "net.minecraft")
+                .expect("Couldn't find a Minecraft component in a PolyMC instance.")
+                .version;
 
-                    let instance_components = &mmc_pack.components;
-                    let game_version = &instance_components
-                        .into_iter()
-                        .find(|c| c.uid == "net.minecraft")
-                        .expect("Couldn't find a Minecraft component in a PolyMC instance.")
-                        .version;
+            let modloader_id_option = instance_components.into_iter().find(|c| {
+                c.uid == "net.fabricmc.fabric-loader"
+                    || c.uid == "org.quiltmc.quilt-loader"
+                    || c.uid == "net.minecraftforge"
+            });
 
-                    let modloader_id_option = instance_components.into_iter().find(|c| {
-                        c.uid == "net.fabricmc.fabric-loader"
-                            || c.uid == "org.quiltmc.quilt-loader"
-                            || c.uid == "net.minecraftforge"
-                    });
+            let instance_name = instance_config
+                .get("name")
+                .expect("A PolyMC instance.cfg didn't have a name field.");
 
-                    let instance_name = instance_config
-                        .get("name")
-                        .expect("A PolyMC instance.cfg didn't have a name field.");
+            let modloader_id = match &modloader_id_option {
+                Some(modloader_id) => PolyMC::get_loader_name(&modloader_id.uid)
+                    .expect("Unable to determine loader name from uid"),
+                None => "vanilla",
+            };
 
-                    let modloader_id = match &modloader_id_option {
-                        Some(modloader_id) => PolyMC::get_loader_name(&modloader_id.uid)
-                            .expect("Unable to determine loader name from uid"),
-                        None => "vanilla",
-                    };
-
-                    return_instances.push(PolyInstance {
-                        name: instance_name.to_string(),
-                        modloader: modloader_id.to_string(),
-                        game_version: game_version.to_string(),
-                        folder_name: dir.file_name().to_str().expect("something went wrong when converting an OsString to a String lmao i have no idea how this went wrong").to_string(),
-                    });
-                }
-            }
+            return_instances.push(PolyInstance {
+                id: num,        
+                name: instance_name.to_string(),
+                modloader: modloader_id.to_string(),
+                game_version: game_version.to_string(),
+                folder_name: dir.file_name().to_str().expect("something went wrong when converting an OsString to a String lmao i have no idea how this went wrong").to_string(),
+            });
         }
 
         Ok(return_instances)

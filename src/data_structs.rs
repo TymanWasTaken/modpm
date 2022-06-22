@@ -1,11 +1,11 @@
-use crate::{download_file, format_to_vec_of_strings};
-use reqwest::Client;
+use crate::format_to_vec_of_strings;
 use serde::Deserialize;
 use serde_json::Value;
-use std::{env, error::Error};
+use std::{error::Error, process};
 
 #[derive(Debug)]
 pub struct PolyInstance {
+    pub id: u32,
     pub name: String,
     pub folder_name: String,
     pub game_version: String,
@@ -46,41 +46,6 @@ impl Mod {
         })
     }
 
-    pub async fn download(&self, game_version: &str) -> Result<(), Box<dyn Error>> {
-        let modrinth_versions_url = format!(
-            "https://api.modrinth.com/v2/versions?ids={:?}",
-            self.versions
-        );
-
-        let modrinth_versions_body = reqwest::get(modrinth_versions_url).await?.text().await?;
-
-        let modrinth_versions: Value = serde_json::from_str(&modrinth_versions_body[..])?;
-
-        for version in modrinth_versions.as_array().unwrap() {
-            if format_to_vec_of_strings(version.get("game_versions").unwrap())
-                .contains(&game_version.to_string())
-            {
-                let url = version["files"][0]["url"].as_str().unwrap();
-                println!(
-                    "{} matches the game version that you want",
-                    version.get("name").unwrap().as_str().unwrap()
-                );
-                println!("Its download URL is {}", url);
-
-                let reqwest_client = Client::new();
-
-                download_file(
-                    &reqwest_client,
-                    url,
-                    &format!("{}/Downloads", env::var("HOME")?)[..],
-                )
-                .await?;
-            }
-        }
-
-        Ok(())
-    }
-
     pub async fn query(mmod: &str) -> Result<Mod, Box<dyn Error>> {
         let client = reqwest::Client::builder().build()?;
 
@@ -97,4 +62,49 @@ impl Mod {
 
         Ok(new_mod)
     }
+
+    pub async fn download(&self, instance: PolyInstance) -> Result<(), Box<dyn Error>> {
+        if instance.modloader == "vanilla" {
+            eprintln!("I can't download mods to a vanilla instance.");
+            process::exit(1);
+        }
+
+        let versions: Vec<ModVersions> = serde_json::from_str(
+            &reqwest::get(format!(
+                "https://api.modrinth.com/v2/versions?ids={:?}",
+                self.versions
+            ))
+            .await
+            .expect("Couldn't get the mod's versions info from Modrinth.")
+            .text()
+            .await
+            .expect("Couldn't convert Modrinth version info into text.")[..],
+        )
+        .expect("Couldn't put Modrinth version data into a ModVersions vector.");
+
+        for version in versions {
+            println!("{:?}", version);
+        }
+        Ok(())
+    }
+}
+
+#[derive(Deserialize, Debug)]
+struct ModVersions {
+    name: String,
+    version_number: String,
+    loaders: Vec<String>,
+    files: Vec<ModVersionFile>,
+}
+#[derive(Deserialize, Debug)]
+struct ModVersionFile {
+    hashes: ModVersionFileHashes,
+    url: String,
+    filename: String,
+    size: u64,
+}
+#[derive(Deserialize, Debug)]
+struct ModVersionFileHashes {
+    sha512: String,
+    sha1: String,
 }

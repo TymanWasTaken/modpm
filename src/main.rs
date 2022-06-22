@@ -1,5 +1,5 @@
 use clap::{arg, Command};
-use modpm::{ask_user, download_file, format_to_vec_of_strings, PolyMC};
+use modpm::{ask_user, format_to_vec_of_strings, PolyMC};
 pub mod data_structs;
 use data_structs::Mod;
 
@@ -48,12 +48,34 @@ async fn main() {
                 queried_mod.name, queried_mod.id
             );
 
-            let game_version = ask_user("What Minecraft version would you like? ");
+            let instances = PolyMC::get_instances().expect("Couldn't get PolyMC instances.");
+            for instance in &instances {
+                println!(
+                    "{}: {} - {} {}",
+                    instance.id, instance.name, instance.modloader, instance.game_version
+                );
+            }
 
-            queried_mod.download(&game_version).await.unwrap();
+            let instance_id = ask_user("What instance do you want to download this mod to? ");
+
+            let instance = &instances
+                .into_iter()
+                .find(|i| i.id.to_string() == instance_id)
+                .expect("Couldn't find that instance.");
+
+            println!("{:?}", instance);
+
+            queried_mod.download(*instance);
         }
         Some(("polymc", _)) => {
-            println!("{:?}", PolyMC::get_instances().unwrap());
+            let instances = PolyMC::get_instances().unwrap();
+
+            for instance in instances {
+                println!(
+                    "{}: {} - {} {}",
+                    instance.id, instance.name, instance.modloader, instance.game_version
+                );
+            }
         }
         Some(("test", _)) => {
             println!("{}", PolyMC::get_directory());
