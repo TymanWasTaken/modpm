@@ -124,8 +124,6 @@ impl Mod {
 
 #[derive(Deserialize, Debug)]
 struct ModVersion {
-    name: String,
-    version_number: String,
     loaders: Vec<String>,
     files: Vec<ModVersionFile>,
     game_versions: Vec<String>,
