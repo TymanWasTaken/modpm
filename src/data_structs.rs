@@ -69,7 +69,7 @@ impl Mod {
             process::exit(1);
         }
 
-        let versions: Vec<ModVersions> = serde_json::from_str(
+        let versions: Vec<ModVersion> = serde_json::from_str(
             &reqwest::get(format!(
                 "https://api.modrinth.com/v2/versions?ids={:?}",
                 self.versions
@@ -80,21 +80,39 @@ impl Mod {
             .await
             .expect("Couldn't convert Modrinth version info into text.")[..],
         )
-        .expect("Couldn't put Modrinth version data into a ModVersions vector.");
+        .expect("Couldn't put Modrinth version data into a ModVersion vector.");
 
-        for version in versions {
-            println!("{:?}", version);
-        }
+        let version = &versions
+            .into_iter()
+            .find(|v| {
+                v.game_versions.contains(&instance.game_version)
+                    && v.loaders.contains(&instance.modloader)
+            })
+            .expect(
+                &format!(
+                    "I couldn't find a version of {} that supports {}.",
+                    self.name, instance.game_version,
+                )[..],
+            );
+
+        let files = &version.files;
+        let file = files
+            .into_iter()
+            .find(|f| f.primary)
+            .expect("Couldn't find a primary file.");
+
+        println!("{:?}", file);
         Ok(())
     }
 }
 
 #[derive(Deserialize, Debug)]
-struct ModVersions {
+struct ModVersion {
     name: String,
     version_number: String,
     loaders: Vec<String>,
     files: Vec<ModVersionFile>,
+    game_versions: Vec<String>,
 }
 #[derive(Deserialize, Debug)]
 struct ModVersionFile {
@@ -102,6 +120,7 @@ struct ModVersionFile {
     url: String,
     filename: String,
     size: u64,
+    primary: bool,
 }
 #[derive(Deserialize, Debug)]
 struct ModVersionFileHashes {

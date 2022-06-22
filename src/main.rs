@@ -51,7 +51,10 @@ async fn main() {
             for instance in &instances {
                 println!(
                     "{}: {} - {} {}",
-                    instance.id, instance.name, instance.modloader, instance.game_version
+                    instance.id,
+                    ansi_term::Color::Purple.paint(&instance.name),
+                    instance.modloader,
+                    instance.game_version
                 );
             }
 
@@ -62,7 +65,10 @@ async fn main() {
                 .find(|i| i.id.to_string() == instance_id)
                 .expect("Couldn't find that instance.");
 
-            println!("{:?}", instance);
+            println!(
+                "{} - {} {}",
+                instance.name, instance.modloader, instance.game_version
+            );
 
             queried_mod.download(instance).await.unwrap();
         }
