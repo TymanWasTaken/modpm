@@ -1,4 +1,4 @@
-use crate::format_to_vec_of_strings;
+use crate::{download_file, format_to_vec_of_strings, PolyMC};
 use serde::Deserialize;
 use serde_json::Value;
 use std::{error::Error, process};
@@ -101,7 +101,23 @@ impl Mod {
             .find(|f| f.primary)
             .expect("Couldn't find a primary file.");
 
+        let path = format!(
+            "{}/instances/{}/.minecraft/mods",
+            PolyMC::get_directory(),
+            instance.folder_name
+        );
         println!("{:?}", file);
+        println!("{}", path);
+
+        download_file(
+            &reqwest::Client::new(),
+            &file.url[..],
+            &path[..],
+            &file.filename[..],
+        )
+        .await
+        .expect("Failed to download the mod.");
+
         Ok(())
     }
 }
@@ -119,7 +135,6 @@ struct ModVersionFile {
     hashes: ModVersionFileHashes,
     url: String,
     filename: String,
-    size: u64,
     primary: bool,
 }
 #[derive(Deserialize, Debug)]

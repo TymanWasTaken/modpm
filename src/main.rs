@@ -52,9 +52,9 @@ async fn main() {
                 println!(
                     "{}: {} - {} {}",
                     instance.id,
-                    ansi_term::Color::Purple.paint(&instance.name),
-                    instance.modloader,
-                    instance.game_version
+                    ansi_term::Color::Blue.paint(&instance.name),
+                    ansi_term::Color::Purple.paint(&instance.modloader),
+                    ansi_term::Color::Green.paint(&instance.game_version)
                 );
             }
 

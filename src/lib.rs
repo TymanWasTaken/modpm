@@ -12,7 +12,6 @@ use std::path::Path;
 use std::string::String;
 use std::{env, fs};
 use std::{error::Error, fs::File, io::Write, usize};
-use urlencoding::decode;
 
 pub fn format_to_vec_of_strings(data: &Value) -> Vec<String> {
     let mut new_data: Vec<String> = vec![];
@@ -28,10 +27,8 @@ pub fn format_to_vec_of_strings(data: &Value) -> Vec<String> {
     new_data
 }
 
-pub async fn download_file(client: &Client, url: &str, path: &str) -> Result<(), Box<dyn Error>> {
+pub async fn download_file(client: &Client, url: &str, path: &str, filename: &str) -> Result<(), Box<dyn Error>> {
     let res = client.get(url).send().await.expect("failed to get the url");
-
-    let filename = decode(res.url().path().split("/").last().unwrap()).unwrap();
 
     let total_size = res
         .content_length()
