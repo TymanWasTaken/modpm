@@ -1,7 +1,6 @@
 use clap::{arg, Command};
-use modpm::{ask_user, format_to_vec_of_strings, PolyMC};
-pub mod data_structs;
-use data_structs::Mod;
+use modpm::data_structs::Mod;
+use modpm::{ask_user, PolyMC};
 
 fn cli() -> Command<'static> {
     Command::new("modpm")
@@ -58,14 +57,14 @@ async fn main() {
 
             let instance_id = ask_user("What instance do you want to download this mod to? ");
 
-            let instance = &instances
+            let instance = instances
                 .into_iter()
                 .find(|i| i.id.to_string() == instance_id)
                 .expect("Couldn't find that instance.");
 
             println!("{:?}", instance);
 
-            queried_mod.download(*instance);
+            queried_mod.download(instance).await.unwrap();
         }
         Some(("polymc", _)) => {
             let instances = PolyMC::get_instances().unwrap();
