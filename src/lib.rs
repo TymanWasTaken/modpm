@@ -11,7 +11,7 @@ use std::io::{stdin, stdout};
 use std::path::Path;
 use std::string::String;
 use std::{env, fs};
-use std::{error::Error, fs::File, io::Write, usize};
+use std::{error::Error, fs::File, io::Write, usize, process};
 
 pub fn format_to_vec_of_strings(data: &Value) -> Vec<String> {
     let mut new_data: Vec<String> = vec![];
@@ -62,12 +62,7 @@ pub fn ask_user(query: &str) -> String {
     print!("{}", query);
     stdout().flush().unwrap();
 
-    stdin().read_line(&mut response).unwrap();
-
-    // Removes the last char from the string (\n)
-    response.pop();
-
-    response.to_string()
+    stdin().read_line(&mut response).unwrap().to_string().trim().to_string()
 }
 
 pub fn parse_cfg_file(filepath: String) -> HashMap<String, String> {
@@ -110,7 +105,7 @@ impl PolyMC {
                         .expect("Unable to convert Path instance to &str")
                         .to_string();
                 }
-                panic!("The OS is linux, but neither the default nor the flatpak PolyMC folder locations could be found");
+                crash("The OS is linux, but neither the default nor the flatpak PolyMC folder locations could be found")
             }
             "macos" => {
                 return format!(
@@ -211,4 +206,9 @@ impl PolyMC {
             _ => None,
         }
     }
+}
+
+fn crash(reason: &str) -> String {
+    eprintln!("{}", reason);
+    process::exit(1);
 }
