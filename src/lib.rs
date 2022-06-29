@@ -62,7 +62,10 @@ pub fn ask_user(query: &str) -> String {
     print!("{}", query);
     stdout().flush().unwrap();
 
-    stdin().read_line(&mut response).unwrap().to_string().trim().to_string()
+    stdin().read_line(&mut response).unwrap();
+    
+
+    response.trim().to_string()
 }
 
 pub fn parse_cfg_file(filepath: String) -> HashMap<String, String> {
