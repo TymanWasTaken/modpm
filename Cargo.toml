@@ -14,3 +14,5 @@ futures-util = "0.3.14"
 progress_bar = "1.0.2"
 clap = {version = "3.2.5", features = ["cargo"]}
 ansi_term = "0.12.1"
+sha2 = "0.10.2"
+hex = "0.4.3"

@@ -7,11 +7,12 @@ use progress_bar::{pb::ProgressBar, Color, Style};
 use reqwest::Client;
 use serde_json::Value;
 use std::collections::HashMap;
-use std::io::{stdin, stdout};
+use std::io::{stdin, stdout, self};
 use std::path::Path;
 use std::string::String;
 use std::{env, fs};
 use std::{error::Error, fs::File, io::Write, usize, process};
+use sha2::{Sha512, Digest};
 
 pub fn format_to_vec_of_strings(data: &Value) -> Vec<String> {
     let mut new_data: Vec<String> = vec![];
@@ -64,7 +65,6 @@ pub fn ask_user(query: &str) -> String {
 
     stdin().read_line(&mut response).unwrap();
     
-
     response.trim().to_string()
 }
 
@@ -214,4 +214,19 @@ impl PolyMC {
 fn crash(reason: &str) -> String {
     eprintln!("{}", reason);
     process::exit(1);
+}
+
+
+fn hash_file() -> Result<String, Box<dyn Error>> {
+    let mut file = File::open("test.txt").unwrap();
+    let mut hasher = Sha512::new();
+    io::copy(&mut file, &mut hasher).unwrap();
+    let result = hasher.finalize();
+
+    println!("{:?}", result);
+
+    let hash = hex::encode(result);
+    println!("{}", hash);
+
+    Ok(hash)
 }
