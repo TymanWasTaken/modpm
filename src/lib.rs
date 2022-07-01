@@ -1,6 +1,6 @@
 pub mod data_structs;
 
-use data_structs::{PolyInstance, PolyInstanceDataJson};
+use data_structs::{PolyInstance, PolyInstanceDataJson, MpmMod};
 
 use futures_util::StreamExt;
 use progress_bar::{pb::ProgressBar, Color, Style};
@@ -199,6 +199,8 @@ impl PolyMC {
         }
 
         Ok(return_instances)
+    
+
     }
 
     pub fn get_loader_name(uid: &str) -> Option<&str> {
@@ -217,16 +219,13 @@ fn crash(reason: &str) -> String {
 }
 
 
-fn hash_file() -> Result<String, Box<dyn Error>> {
-    let mut file = File::open("test.txt").unwrap();
+fn hash_file(path: &str) -> Result<String, Box<dyn Error>> {
+    let mut file = File::open(path).unwrap();
     let mut hasher = Sha512::new();
     io::copy(&mut file, &mut hasher).unwrap();
     let result = hasher.finalize();
 
-    println!("{:?}", result);
-
     let hash = hex::encode(result);
-    println!("{}", hash);
 
     Ok(hash)
 }
