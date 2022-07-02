@@ -157,7 +157,7 @@ pub struct ModrinthTeamUser {
     pub username: String,
     pub name: Option<String>,
     pub email: Option<String>,
-    pub bio: String,
+    pub bio: Option<String>,
     pub id: String,
     pub github_id: u64,
     pub avatar_url: String,
