@@ -1,6 +1,6 @@
 pub mod data_structs;
 
-use data_structs::{PolyInstance, PolyInstanceDataJson, MpmMod};
+use data_structs::{PolyInstance, PolyInstanceDataJson};
 
 use futures_util::StreamExt;
 use progress_bar::{pb::ProgressBar, Color, Style};
@@ -117,6 +117,8 @@ impl PolyMC {
                 )
             }
             "windows" => {
+                // windows <:hollow:829582572983943209>
+                // this os has so many problems with it i stg
                 return format!(
                     "{}\\AppData\\Roaming\\PolyMC",
                     env::var("HOME").expect("Couldn't get the $HOME env var.")
@@ -213,13 +215,13 @@ impl PolyMC {
     }
 }
 
-fn crash(reason: &str) -> String {
+pub fn crash(reason: &str) -> String {
     eprintln!("{}", reason);
     process::exit(1);
 }
 
 
-fn hash_file(path: &str) -> Result<String, Box<dyn Error>> {
+pub fn hash_file(path: &str) -> Result<String, Box<dyn Error>> {
     let mut file = File::open(path).unwrap();
     let mut hasher = Sha512::new();
     io::copy(&mut file, &mut hasher).unwrap();

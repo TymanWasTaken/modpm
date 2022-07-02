@@ -98,48 +98,71 @@ impl Mod {
 }
 
 #[derive(Deserialize, Debug)]
-struct ModVersion {
-    loaders: Vec<String>,
-    files: Vec<ModVersionFile>,
-    game_versions: Vec<String>,
+pub struct ModVersion {
+    pub loaders: Vec<String>,
+    pub files: Vec<ModVersionFile>,
+    pub game_versions: Vec<String>,
 }
 #[derive(Deserialize, Debug)]
-struct ModVersionFile {
-    hashes: ModVersionFileHashes,
-    url: String,
-    filename: String,
-    primary: bool,
+pub struct ModVersionFile {
+    pub hashes: ModVersionFileHashes,
+    pub url: String,
+    pub filename: String,
+    pub primary: bool,
 }
 #[derive(Deserialize, Debug)]
-struct ModVersionFileHashes {
-    sha512: String,
-    sha1: String,
+pub struct ModVersionFileHashes {
+    pub sha512: String,
+    pub sha1: String,
 }
 
 #[derive(Debug)]
 pub struct MpmMod {
-    title: String,
-    id: String,
-    license: ModrinthLicense,
-    versions: Vec<ModVersion>,
-    description: String,
-    categories: Vec<String>,
-    source_url: String,
-    donation_urls: Vec<ModrinthDonationUrls>,
+    pub title: String,
+    pub id: String,
+    pub license: ModrinthLicense,
+    pub versions: Vec<ModVersion>,
+    pub description: String,
+    pub categories: Vec<String>,
+    pub source_url: String,
+    pub donation_urls: Vec<ModrinthDonationUrls>,
+    pub members: Vec<ModrinthTeamMember>,
 }
 
 #[derive(Deserialize, Debug)]
 pub struct ModrinthLicense {
-    id: String,
-    name: String,
-    url: String,
+    pub id: String,
+    pub name: String,
+    pub url: String,
 }
 
 #[derive(Deserialize, Debug)]
 pub struct ModrinthDonationUrls {
-    id: String,
-    platform: String,
-    url: String,
+    pub id: String,
+    pub platform: String,
+    pub url: String,
+}
+
+#[derive(Deserialize, Debug)]
+pub struct ModrinthTeamMember {
+    pub team_id: String,
+    pub user: ModrinthTeamUser,
+    pub role: String,
+    pub permissions: Option<u64>,
+    pub accepted: bool,
+}
+
+#[derive(Deserialize, Debug)]
+pub struct ModrinthTeamUser {
+    pub username: String,
+    pub name: Option<String>,
+    pub email: Option<String>,
+    pub bio: String,
+    pub id: String,
+    pub github_id: u64,
+    pub avatar_url: String,
+    pub created: String,
+    pub role: String,
 }
 
 impl MpmMod {
@@ -177,6 +200,18 @@ impl MpmMod {
         let donation_urls: Vec<ModrinthDonationUrls> =
             serde_json::from_str(&json["donation_urls"].to_string()[..])?;
 
+        let team_url = format!("https://api.modrinth.com/v2/project/{}/members", id);
+
+        println!("{}\n", team_url);
+
+        let team_members_text = reqwest::get(team_url).await.unwrap().text().await.unwrap();
+        println!("{}\n", team_members_text);
+
+        let members: Vec<ModrinthTeamMember> = serde_json::from_str(&team_members_text[..])
+            .expect("Couldn't turn team members into the ModrinthTeamMember struct");
+
+        println!("{:?}", members);
+
         Ok(MpmMod {
             title: title.to_string(),
             id: id.to_string(),
@@ -186,6 +221,7 @@ impl MpmMod {
             categories,
             donation_urls,
             source_url: source_url.to_string(),
+            members: vec![],
         })
     }
 

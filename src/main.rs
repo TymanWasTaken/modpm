@@ -33,8 +33,6 @@ async fn main() {
             let mmod = sub_matches.get_one::<String>("MOD").expect("required");
 
             let mod_data = MpmMod::new(mmod).await.expect("Couldn't get mod.");
-
-            println!("{:?}", mod_data);
         }
         Some(("download", sub_matches)) => {
             let mmod = sub_matches.get_one::<String>("MOD").expect("required");
