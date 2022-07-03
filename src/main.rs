@@ -32,7 +32,7 @@ async fn main() {
         Some(("query", sub_matches)) => {
             let mmod = sub_matches.get_one::<String>("MOD").expect("required");
 
-            let mod_data = MpmMod::new(mmod).await.expect("Couldn't get mod.");
+            query_mod(&mmod[..]).await;
         }
         Some(("download", sub_matches)) => {
             let mmod = sub_matches.get_one::<String>("MOD").expect("required");
@@ -82,5 +82,18 @@ async fn main() {
             println!("{}", PolyMC::get_directory());
         }
         _ => unreachable!(),
+    }
+}
+
+async fn query_mod(mmod: &str) {
+    let mod_data = MpmMod::new(mmod).await.expect("Couldn't get mod.");
+    println!("I found {}", mod_data.title);
+
+    for member in mod_data.members {
+        println!(
+            "{} - {}",
+            member.user.name.unwrap_or(member.user.username),
+            member.role
+        );
     }
 }

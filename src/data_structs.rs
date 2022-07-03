@@ -202,15 +202,10 @@ impl MpmMod {
 
         let team_url = format!("https://api.modrinth.com/v2/project/{}/members", id);
 
-        println!("{}\n", team_url);
-
         let team_members_text = reqwest::get(team_url).await.unwrap().text().await.unwrap();
-        println!("{}\n", team_members_text);
 
         let members: Vec<ModrinthTeamMember> = serde_json::from_str(&team_members_text[..])
             .expect("Couldn't turn team members into the ModrinthTeamMember struct");
-
-        println!("{:?}", members);
 
         Ok(MpmMod {
             title: title.to_string(),
@@ -221,7 +216,7 @@ impl MpmMod {
             categories,
             donation_urls,
             source_url: source_url.to_string(),
-            members: vec![],
+            members,
         })
     }
 
