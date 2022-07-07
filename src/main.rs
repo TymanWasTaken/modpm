@@ -93,8 +93,11 @@ async fn query_mod(mmod: &str) {
     let mod_data = MpmMod::new(mmod).await.expect("Couldn't get mod.");
     println!(
         "I found {}, which is licensed under {}, and located at {}",
-        mod_data.title, mod_data.license.name, mod_data.source_url
+        ansi_term::Color::Green.paint(&mod_data.title),
+        ansi_term::Color::Green.paint(&mod_data.license.name),
+        ansi_term::Color::RGB(255, 165, 0).paint(&mod_data.source_url)
     );
+    println!("{}", mod_data.description);
 
     let mut members: HashMap<String, Vec<String>> = HashMap::new();
     members.insert("Owner".to_string(), vec![]);
