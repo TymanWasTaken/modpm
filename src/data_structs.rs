@@ -1,4 +1,4 @@
-use crate::{download_file, format_to_vec_of_strings, PolyMC};
+use crate::{crash, download_file, format_to_vec_of_strings, PolyMC};
 use serde::Deserialize;
 use serde_json::Value;
 use std::{error::Error, process};
@@ -169,13 +169,14 @@ impl MpmMod {
     pub async fn new(query: &str) -> Result<MpmMod, Box<dyn Error>> {
         let data = reqwest::get(format!("https://api.modrinth.com/v2/project/{}", query))
             .await
-            .expect("Failed to get the mod data from Modrinth.")
-            .text()
-            .await
-            .expect("Failed to get the text from the Modrinth mod data.");
+            .expect("Failed to get the mod data from Modrinth");
 
-        let json: Value =
-            serde_json::from_str(&data[..]).expect("Failed to turn the text into a JSON.");
+        if data.status().as_u16() == 404 {
+            crash("I couldn't find that mod.");
+        }
+
+        let json: Value = serde_json::from_str(&data.text().await.unwrap()[..])
+            .expect("Failed to turn the text into a JSON.");
 
         let title = json["title"].as_str().unwrap();
         let id = json["id"].as_str().unwrap();
