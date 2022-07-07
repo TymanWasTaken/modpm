@@ -1,6 +1,8 @@
+use std::collections::HashMap;
+
 use clap::{arg, Command};
-use modpm::data_structs::{Mod, MpmMod};
-use modpm::{ask_user, PolyMC};
+use modpm::data_structs::MpmMod;
+use modpm::PolyMC;
 
 fn cli() -> Command<'static> {
     Command::new("modpm")
@@ -34,49 +36,51 @@ async fn main() {
 
             query_mod(&mmod[..]).await;
         }
-        Some(("download", sub_matches)) => {
-            let mmod = sub_matches.get_one::<String>("MOD").expect("required");
-            //            let queried_mod = Mod::query(mmod).await.unwrap();
+        Some(("download", _sub_matches)) => {
+            /*
+                let mmod = sub_matches.get_one::<String>("MOD").expect("required");
+                let queried_mod = Mod::query(mmod).await.unwrap();
 
-            //            println!(
-            //                "I found {}, with the ID {}.",
-            //                queried_mod.name, queried_mod.id
-            //            );
+                println!(
+                    "I found {}, with the ID {}.",
+                    queried_mod.name, queried_mod.id
+                );
 
-            //            let instances = PolyMC::get_instances().expect("Couldn't get PolyMC instances.");
-            //            for instance in &instances {
-            //                println!(
-            //                    "{}: {} - {} {}",
-            //                    instance.id,
-            //                    ansi_term::Color::Blue.paint(&instance.name),
-            //                    ansi_term::Color::Purple.paint(&instance.modloader),
-            //                    ansi_term::Color::Green.paint(&instance.game_version)
-            //                );
-            //            }
+                let instances = PolyMC::get_instances().expect("Couldn't get PolyMC instances.");
+                for instance in &instances {
+                    println!(
+                        "{}: {} - {} {}",
+                        instance.id,
+                        ansi_term::Color::Blue.paint(&instance.name),
+                        ansi_term::Color::Purple.paint(&instance.modloader),
+                        ansi_term::Color::Green.paint(&instance.game_version)
+                    );
+                }
 
-            //            let instance_id = ask_user("What instance do you want to download this mod to? ");
+                let instance_id = ask_user("What instance do you want to download this mod to? ");
 
-            //            let instance = instances
-            //                .into_iter()
-            //                .find(|i| i.id.to_string() == instance_id)
-            //                .expect("Couldn't find that instance.");
+                let instance = instances
+                    .into_iter()
+                    .find(|i| i.id.to_string() == instance_id)
+                    .expect("Couldn't find that instance.");
 
-            //            println!(
-            //                "{} - {} {}",
-            //                instance.name, instance.modloader, instance.game_version
-            //            );
+                println!(
+                    "{} - {} {}",
+                    instance.name, instance.modloader, instance.game_version
+                );
 
-            //            queried_mod.download(instance).await.unwrap();
-            //        }
-            //        Some(("polymc", _)) => {
-            //            let instances = PolyMC::get_instances().unwrap();
+                queried_mod.download(instance).await.unwrap();
+            */
+        }
+        Some(("polymc", _)) => {
+            let instances = PolyMC::get_instances().unwrap();
 
-            //            for instance in instances {
-            //                println!(
-            //                    "{}: {} - {} {}",
-            //                    instance.id, instance.name, instance.modloader, instance.game_version
-            //                );
-            //            }
+            for instance in instances {
+                println!(
+                    "{}: {} - {} {}",
+                    instance.id, instance.name, instance.modloader, instance.game_version
+                );
+            }
         }
         Some(("test", _)) => {
             println!("{}", PolyMC::get_directory());
@@ -87,13 +91,29 @@ async fn main() {
 
 async fn query_mod(mmod: &str) {
     let mod_data = MpmMod::new(mmod).await.expect("Couldn't get mod.");
-    println!("I found {}", mod_data.title);
+    println!(
+        "I found {}, which is licensed under {}, and located at {}",
+        mod_data.title, mod_data.license.name, mod_data.source_url
+    );
+
+    let mut members: HashMap<String, Vec<String>> = HashMap::new();
+    members.insert("Owner".to_string(), vec![]);
 
     for member in mod_data.members {
-        println!(
-            "{} - {}",
-            member.user.name.unwrap_or(member.user.username),
-            member.role
-        );
+        let _entry = match members.entry(member.role) {
+            std::collections::hash_map::Entry::Vacant(role) => {
+                let new_value = vec![member.user.name.unwrap_or(member.user.username)];
+                role.insert(new_value);
+            }
+            std::collections::hash_map::Entry::Occupied(mut role) => {
+                role.get_mut()
+                    .push(member.user.name.unwrap_or(member.user.username));
+            }
+        };
+    }
+
+    for role in members.keys() {
+        let people = members.get(role).unwrap();
+        println!("{}: {}", role, people.join(", "));
     }
 }
