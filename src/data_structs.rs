@@ -1,4 +1,4 @@
-use crate::{crash, download_file, format_to_vec_of_strings, web_get, PolyMC};
+use crate::{ask_user, crash, download_file, format_to_vec_of_strings, web_get, PolyMC};
 use serde::Deserialize;
 use serde_json::Value;
 use std::{error::Error, process};
@@ -94,24 +94,28 @@ impl Mod {
     }
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Clone)]
 pub struct ModVersion {
+    pub mpm_id: Option<u8>,
+    pub name: String,
+    pub version_number: String,
     pub loaders: Vec<String>,
     pub files: Vec<ModVersionFile>,
     pub game_versions: Vec<String>,
     pub project_id: String,
+    pub date_published: String,
 }
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Clone)]
 pub struct ModVersionFile {
     pub hashes: ModVersionFileHashes,
     pub url: String,
     pub filename: String,
     pub primary: bool,
 }
-#[derive(Deserialize, Debug)]
+
+#[derive(Deserialize, Debug, Clone)]
 pub struct ModVersionFileHashes {
     pub sha512: String,
-    pub sha1: String,
 }
 
 #[derive(Debug)]
@@ -239,12 +243,68 @@ impl MpmMod {
     }
 
     pub async fn download(&self, instance: PolyInstance) {
-        let versions = &self.versions;
-        let version = versions.into_iter().filter(|v| {
+        let versions_base = &self.versions;
+        let versions_filtered = versions_base.into_iter().filter(|v| {
             v.game_versions.contains(&instance.game_version)
                 && v.loaders.contains(&instance.modloader)
         });
 
-        println!("{:?}", version);
+        let mut possible_versions: Vec<ModVersion> = vec![];
+
+        for version in versions_filtered {
+            possible_versions.push(version.clone());
+        }
+
+        let version_to_download: ModVersion;
+        match possible_versions.len() {
+            0 => {
+                crash(
+                    &format!(
+                        "I couldn't find a version of {} that matches that instance.",
+                        ansi_term::Color::Green.paint(&self.title)
+                    )[..],
+                );
+
+                version_to_download = ModVersion {
+                    mpm_id: None,
+                    name: String::new(),
+                    version_number: String::new(),
+                    project_id: String::new(),
+                    date_published: String::from("1970-01-01T00:00:00Z"),
+                    files: vec![],
+                    game_versions: vec![],
+                    loaders: vec![],
+                }
+            }
+            1 => version_to_download = possible_versions[0].clone(),
+            _ => {
+                let mut num = 0;
+                let mut versions_with_id: Vec<ModVersion> = vec![];
+                for mut v in possible_versions {
+                    num += 1;
+                    v.mpm_id = Some(num);
+                    versions_with_id.push(v);
+                }
+
+                for version in &versions_with_id {
+                    println!(
+                        "{}: {} {}",
+                        version.mpm_id.expect("A mod version didn't have an ID"),
+                        ansi_term::Color::Green.paint(&version.name),
+                        ansi_term::Color::RGB(128, 128, 128)
+                            .paint(format!("({})", version.version_number))
+                    );
+                }
+
+                let version_id = ask_user("What version of this mod do you want to download? ");
+
+                version_to_download = versions_with_id
+                    .into_iter()
+                    .find(|i| i.mpm_id.unwrap().to_string() == version_id)
+                    .expect("Couldn't find that instance.");
+            }
+        };
+
+        println!("{:?}", version_to_download);
     }
 }
