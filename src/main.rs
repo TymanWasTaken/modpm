@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use clap::{arg, Command};
 use modpm::data_structs::MpmMod;
-use modpm::PolyMC;
+use modpm::{ask_user, PolyMC};
 
 fn cli() -> Command<'static> {
     Command::new("modpm")
@@ -36,9 +36,33 @@ async fn main() {
 
             query_mod(&mmod[..]).await;
         }
-        Some(("download", _sub_matches)) => {
+        Some(("download", sub_matches)) => {
+            let mod_arg = sub_matches.get_one::<String>("MOD").expect("required");
+            let mod_data = match MpmMod::new(mod_arg).await {
+                Ok(data) => data,
+                Err(_) => MpmMod::new_from_hash(mod_arg).await,
+            };
+
+            let instances = PolyMC::get_instances().expect("Couldn't get PolyMC instances.");
+            for instance in &instances {
+                println!(
+                    "{}: {} - {} {}",
+                    instance.id,
+                    ansi_term::Color::Blue.paint(&instance.name),
+                    ansi_term::Color::Purple.paint(&instance.modloader),
+                    ansi_term::Color::Green.paint(&instance.game_version)
+                );
+            }
+
+            let instance_id = ask_user("What instance do you want to download this mod to? ");
+
+            let instance = instances
+                .into_iter()
+                .find(|i| i.id.to_string() == instance_id)
+                .expect("Couldn't find that instance.");
+
+            mod_data.download(instance).await;
             /*
-                let mmod = sub_matches.get_one::<String>("MOD").expect("required");
                 let queried_mod = Mod::query(mmod).await.unwrap();
 
                 println!(
@@ -73,6 +97,7 @@ async fn main() {
             */
         }
         Some(("polymc", _)) => {
+            println!("hi yes i literally just use this for testing shit\nthis will be removed before an actual release lmao");
             let instances = PolyMC::get_instances().unwrap();
 
             for instance in instances {
@@ -83,17 +108,23 @@ async fn main() {
             }
         }
         Some(("test", _)) => {
-            println!("{}", PolyMC::get_directory());
+            println!("hi yes i literally just use this for testing shit\nthis will be removed before an actual release lmao");
+            println!("{:?}", MpmMod::new_from_hash("95589fcca80f77aca8e38634927bfb7a5bd5b31b7f34c09352cc7724541b9efe8bbe1d7c1a39afcdbf67fa38f5871355ccb56817027bf6028255393c7174e450").await);
         }
         _ => unreachable!(),
     }
 }
 
 async fn query_mod(mmod: &str) {
-    let mod_data = MpmMod::new(mmod).await.expect("Couldn't get mod.");
+    let mod_data = match MpmMod::new(mmod).await {
+        Ok(data) => data,
+        Err(_) => MpmMod::new_from_hash(mmod).await,
+    };
+
     println!(
-        "I found {}, which is licensed under {}, and located at {}",
+        "I found {}{}, which is licensed under {}, and located at {}",
         ansi_term::Color::Green.paint(&mod_data.title),
+        ansi_term::Color::RGB(128, 128, 128).paint(format!(" ({})", mod_data.id)),
         ansi_term::Color::Green.paint(&mod_data.license.name),
         ansi_term::Color::RGB(255, 165, 0).paint(&mod_data.source_url)
     );
@@ -115,8 +146,12 @@ async fn query_mod(mmod: &str) {
         };
     }
 
-    for role in members.keys() {
-        let people = members.get(role).unwrap();
+    println!(
+        "Owner: {}",
+        ansi_term::Color::Purple.paint(members.remove("Owner").unwrap().join(", "))
+    );
+
+    for (role, people) in members {
         println!("{}: {}", role, people.join(", "));
     }
 }

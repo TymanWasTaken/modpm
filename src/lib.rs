@@ -4,7 +4,6 @@ use data_structs::{PolyInstance, PolyInstanceDataJson};
 
 use futures_util::StreamExt;
 use progress_bar::{pb::ProgressBar, Color, Style};
-use reqwest::Client;
 use serde_json::Value;
 use std::collections::HashMap;
 use std::io::{stdin, stdout, self};
@@ -13,6 +12,17 @@ use std::string::String;
 use std::{env, fs};
 use std::{error::Error, fs::File, io::Write, usize, process};
 use sha2::{Sha512, Digest};
+
+async fn web_get(url: &str) -> Result<reqwest::Response, reqwest::Error> {
+    reqwest::Client::new()
+        .get(url)
+        .header(
+            reqwest::header::USER_AGENT,
+            "https://github.com/Lisenaaaa/modpm",
+        )
+        .send()
+        .await
+}
 
 pub fn format_to_vec_of_strings(data: &Value) -> Vec<String> {
     let mut new_data: Vec<String> = vec![];
@@ -28,8 +38,8 @@ pub fn format_to_vec_of_strings(data: &Value) -> Vec<String> {
     new_data
 }
 
-pub async fn download_file(client: &Client, url: &str, path: &str, filename: &str) -> Result<(), Box<dyn Error>> {
-    let res = client.get(url).send().await.expect("failed to get the url");
+pub async fn download_file(url: &str, path: &str, filename: &str) -> Result<(), Box<dyn Error>> {
+    let res = web_get(url).await.expect("failed to get the url");
 
     let total_size = res
         .content_length()
