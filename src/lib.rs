@@ -18,7 +18,7 @@ async fn web_get(url: &str) -> Result<reqwest::Response, reqwest::Error> {
         .get(url)
         .header(
             reqwest::header::USER_AGENT,
-            "https://github.com/Lisenaaaa/modpm",
+            "modpm/0.1.0 (https://github.com/Lisenaaaa/modpm)",
         )
         .send()
         .await
