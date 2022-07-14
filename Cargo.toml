@@ -1,7 +1,9 @@
 [package]
 name = "modpm"
 version = "1.0.1"
-edition = "2021"
+edition = "2022"
+license = "NPOSL-3.0"
+description = "A Minecraft mod package manager"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
