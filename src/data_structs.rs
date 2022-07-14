@@ -104,7 +104,18 @@ pub struct ModVersion {
     pub game_versions: Vec<String>,
     pub project_id: String,
     pub date_published: String,
+    pub dependencies: Vec<ModVersionDependencies>,
 }
+
+impl ModVersion {
+    pub fn time(&self) -> i64 {
+        use chrono::prelude::*;
+
+        let utc = DateTime::parse_from_rfc3339(&self.date_published[..]).unwrap();
+        utc.timestamp()
+    }
+}
+
 #[derive(Deserialize, Debug, Clone)]
 pub struct ModVersionFile {
     pub hashes: ModVersionFileHashes,
@@ -116,6 +127,13 @@ pub struct ModVersionFile {
 #[derive(Deserialize, Debug, Clone)]
 pub struct ModVersionFileHashes {
     pub sha512: String,
+}
+
+#[derive(Deserialize, Debug, Clone)]
+pub struct ModVersionDependencies {
+    pub version_id: Option<String>,
+    pub project_id: Option<String>,
+    pub dependency_type: String,
 }
 
 #[derive(Debug)]
@@ -165,6 +183,12 @@ pub struct ModrinthTeamUser {
     pub avatar_url: String,
     pub created: String,
     pub role: String,
+}
+
+impl ModrinthTeamUser {
+    pub fn display_name(&self) -> String {
+        self.name.clone().unwrap_or(self.username.clone())
+    }
 }
 
 impl MpmMod {
@@ -242,6 +266,11 @@ impl MpmMod {
         MpmMod::new(&json.project_id[..]).await.unwrap()
     }
 
+    pub fn get_owner(&self) -> Option<&ModrinthTeamMember> {
+        let members = &self.members;
+        members.into_iter().find(|m| m.role == "Owner")
+    }
+
     pub async fn download(&self, instance: PolyInstance) {
         let versions_base = &self.versions;
         let versions_filtered = versions_base.into_iter().filter(|v| {
@@ -255,8 +284,20 @@ impl MpmMod {
             possible_versions.push(version.clone());
         }
 
+        let mut latest_version_timestamp = 0;
+        for version in &possible_versions {
+            if version.time() > latest_version_timestamp {
+                latest_version_timestamp = version.time()
+            }
+        }
+        let latest_version = possible_versions
+            .clone()
+            .into_iter()
+            .find(|v| v.time() == latest_version_timestamp)
+            .unwrap();
+
         let version_to_download: ModVersion;
-        match possible_versions.len() {
+        match possible_versions.clone().len() {
             0 => {
                 crash(
                     &format!(
@@ -274,6 +315,7 @@ impl MpmMod {
                     files: vec![],
                     game_versions: vec![],
                     loaders: vec![],
+                    dependencies: vec![],
                 }
             }
             1 => version_to_download = possible_versions[0].clone(),
@@ -288,11 +330,17 @@ impl MpmMod {
 
                 for version in &versions_with_id {
                     println!(
-                        "{}: {} {}",
+                        "{}: {} ({}{})",
                         version.mpm_id.expect("A mod version didn't have an ID"),
                         ansi_term::Color::Green.paint(&version.name),
-                        ansi_term::Color::RGB(128, 128, 128)
-                            .paint(format!("({})", version.version_number))
+                        ansi_term::Color::RGB(128, 128, 128).paint(&version.version_number),
+                        ansi_term::Color::Red.paint(
+                            if version.version_number == latest_version.version_number {
+                                " latest"
+                            } else {
+                                ""
+                            }
+                        ),
                     );
                 }
 
@@ -306,5 +354,20 @@ impl MpmMod {
         };
 
         println!("{:?}", version_to_download);
+
+        if version_to_download.dependencies.len() != 0 {
+            println!("Has dependencies!");
+            let required_dependencies: Vec<ModVersionDependencies> = version_to_download
+                .dependencies
+                .into_iter()
+                .filter(|v| v.dependency_type == "required")
+                .collect();
+
+            println!(
+                "{} of those are required - {:?}",
+                required_dependencies.len(),
+                required_dependencies
+            )
+        }
     }
 }

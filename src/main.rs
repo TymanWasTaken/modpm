@@ -43,6 +43,20 @@ async fn main() {
                 Err(_) => MpmMod::new_from_hash(mod_arg).await,
             };
 
+            println!(
+                "I found {}{} by {} - {}",
+                ansi_term::Color::Green.paint(&mod_data.title),
+                ansi_term::Color::RGB(128, 128, 128).paint(format!(" ({})", mod_data.id)),
+                ansi_term::Color::Purple.paint(
+                    mod_data
+                        .get_owner()
+                        .expect("Couldn't get a mod's owner")
+                        .user
+                        .display_name()
+                ),
+                mod_data.description
+            );
+
             let instances = PolyMC::get_instances().expect("Couldn't get PolyMC instances.");
             for instance in &instances {
                 println!(
@@ -83,7 +97,7 @@ async fn main() {
 
                 let instance_id = ask_user("What instance do you want to download this mod to? ");
 
-                let instance = instances
+
                     .into_iter()
                     .find(|i| i.id.to_string() == instance_id)
                     .expect("Couldn't find that instance.");
@@ -108,8 +122,10 @@ async fn main() {
             }
         }
         Some(("test", _)) => {
-            println!("hi yes i literally just use this for testing shit\nthis will be removed before an actual release lmao");
-            println!("{:?}", MpmMod::new_from_hash("95589fcca80f77aca8e38634927bfb7a5bd5b31b7f34c09352cc7724541b9efe8bbe1d7c1a39afcdbf67fa38f5871355ccb56817027bf6028255393c7174e450").await);
+            use chrono::prelude::*;
+
+            let utc = DateTime::parse_from_rfc3339("2022-06-21T17:11:12+00:00").unwrap();
+            println!("{}", utc.timestamp());
         }
         _ => unreachable!(),
     }
