@@ -31,6 +31,7 @@ pub struct Mod {
 #[derive(Deserialize, Debug, Clone)]
 pub struct ModVersion {
     pub mpm_id: Option<u8>,
+    pub id: String,
     pub name: String,
     pub version_number: String,
     pub loaders: Vec<String>,
@@ -255,6 +256,7 @@ impl MpmMod {
 
                 version_to_download = ModVersion {
                     mpm_id: None,
+                    id: String::new(),
                     name: String::new(),
                     version_number: String::new(),
                     project_id: String::new(),
@@ -332,8 +334,17 @@ impl MpmMod {
             if dep.dependency_type == "required" {
                 deps.push(
                     ModVersion::new(
-                        dep.version_id
-                            .expect("A version's dependency didn't have an ID"),
+                        dep.version_id.unwrap_or(
+                            MpmMod::new(&dep.project_id.unwrap()[..])
+                                .await
+                                .unwrap()
+                                .versions
+                                .into_iter()
+                                .find(|v| {
+                                    v.loaders.contains(&instance.modloader)
+                                        && v.game_versions.contains(&instance.game_version)
+                                }).expect("Couldn't find a version of a mod's dependency that meets the instance requirements").id,
+                        ),
                     )
                     .await,
                 )
