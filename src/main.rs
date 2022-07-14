@@ -44,7 +44,7 @@ async fn main() {
             };
 
             println!(
-                "I found {}{} by {} - {}",
+                "I found {}{} by {} - {}\n",
                 ansi_term::Color::Green.paint(&mod_data.title),
                 ansi_term::Color::RGB(128, 128, 128).paint(format!(" ({})", mod_data.id)),
                 ansi_term::Color::Purple.paint(

@@ -9,4 +9,7 @@ yes it's a bad name. oh, you're mad about that? i present [pacman](https://wiki.
 
 installs and updates minecraft mods within polymc instances
 
-might work with multimc if you set a custom path idk i haven't implemented that yet AND i won't test it at all because fuck multimc. use polymc.
+## Installation
++ With Cargo: `cargo install modpm`
+
+*I'm planning on adding this to the AUR soon* 

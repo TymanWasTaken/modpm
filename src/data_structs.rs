@@ -333,19 +333,20 @@ impl MpmMod {
         for dep in version.dependencies {
             if dep.dependency_type == "required" {
                 deps.push(
-                    ModVersion::new(
-                        dep.version_id.unwrap_or(
-                            MpmMod::new(&dep.project_id.unwrap()[..])
+                    ModVersion::new({
+                        if dep.version_id.is_some() {
+                            dep.version_id.unwrap()
+                        } else {
+                            MpmMod::new(&dep.project_id.expect("A dependency didn't have a version ID or a project ID"))
                                 .await
-                                .unwrap()
+                                .expect("Couldn't fetch a dependency's project")
                                 .versions
                                 .into_iter()
-                                .find(|v| {
-                                    v.loaders.contains(&instance.modloader)
-                                        && v.game_versions.contains(&instance.game_version)
-                                }).expect("Couldn't find a version of a mod's dependency that meets the instance requirements").id,
-                        ),
-                    )
+                                .find(|v| v.loaders.contains(&instance.modloader) && v.game_versions.contains(&instance.game_version))
+                                .expect("Couldn't find a dependency version that matches the PolyMC instance")
+                                .id
+                        }
+                    })
                     .await,
                 )
             }
