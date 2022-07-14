@@ -22,8 +22,8 @@ fn cli() -> Command<'static> {
                 .arg(arg!(<MOD> "The mod to download."))
                 .arg_required_else_help(true),
         )
-        .subcommand(Command::new("polymc").about("testing lmao"))
-        .subcommand(Command::new("test").about("even more testing"))
+    // .subcommand(Command::new("polymc").about("testing lmao"))
+    // .subcommand(Command::new("test").about("even more testing"))
 }
 
 #[tokio::main]
@@ -76,57 +76,26 @@ async fn main() {
                 .expect("Couldn't find that instance.");
 
             mod_data.download(instance).await;
-            /*
-                let queried_mod = Mod::query(mmod).await.unwrap();
+        }
+        /*
+                Some(("polymc", _)) => {
+                    println!("hi yes i literally just use this for testing shit\nthis will be removed before an actual release lmao");
+                    let instances = PolyMC::get_instances().unwrap();
 
-                println!(
-                    "I found {}, with the ID {}.",
-                    queried_mod.name, queried_mod.id
-                );
-
-                let instances = PolyMC::get_instances().expect("Couldn't get PolyMC instances.");
-                for instance in &instances {
-                    println!(
-                        "{}: {} - {} {}",
-                        instance.id,
-                        ansi_term::Color::Blue.paint(&instance.name),
-                        ansi_term::Color::Purple.paint(&instance.modloader),
-                        ansi_term::Color::Green.paint(&instance.game_version)
-                    );
+                    for instance in instances {
+                        println!(
+                            "{}: {} - {} {}",
+                            instance.id, instance.name, instance.modloader, instance.game_version
+                        );
+                    }
                 }
+                Some(("test", _)) => {
+                    use chrono::prelude::*;
 
-                let instance_id = ask_user("What instance do you want to download this mod to? ");
-
-
-                    .into_iter()
-                    .find(|i| i.id.to_string() == instance_id)
-                    .expect("Couldn't find that instance.");
-
-                println!(
-                    "{} - {} {}",
-                    instance.name, instance.modloader, instance.game_version
-                );
-
-                queried_mod.download(instance).await.unwrap();
-            */
-        }
-        Some(("polymc", _)) => {
-            println!("hi yes i literally just use this for testing shit\nthis will be removed before an actual release lmao");
-            let instances = PolyMC::get_instances().unwrap();
-
-            for instance in instances {
-                println!(
-                    "{}: {} - {} {}",
-                    instance.id, instance.name, instance.modloader, instance.game_version
-                );
-            }
-        }
-        Some(("test", _)) => {
-            use chrono::prelude::*;
-
-            let utc = DateTime::parse_from_rfc3339("2022-06-21T17:11:12+00:00").unwrap();
-            println!("{}", utc.timestamp());
-        }
+                    let utc = DateTime::parse_from_rfc3339("2022-06-21T17:11:12+00:00").unwrap();
+                    println!("{}", utc.timestamp());
+                }
+        */
         _ => unreachable!(),
     }
 }
