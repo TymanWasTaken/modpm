@@ -4,6 +4,7 @@ version = "1.0.1"
 edition = "2021"
 license = "NPOSL-3.0"
 description = "A Minecraft mod package manager"
+repository = "https://github.com/Lisenaaaa/modpm"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
