@@ -38,8 +38,8 @@ pub fn format_to_vec_of_strings(data: &Value) -> Vec<String> {
     new_data
 }
 
-pub async fn download_file(url: &str, path: &str, filename: &str) -> Result<(), Box<dyn Error>> {
-    let res = web_get(url).await.expect("failed to get the url");
+pub async fn download_file(url: String, path: String, filename: String) -> Result<(), Box<dyn Error>> {
+    let res = web_get(&url[..]).await.expect("failed to get the url");
 
     let total_size = res
         .content_length()

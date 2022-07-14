@@ -1,4 +1,5 @@
 use crate::{ask_user, crash, download_file, format_to_vec_of_strings, web_get, PolyMC};
+use async_recursion::async_recursion;
 use serde::Deserialize;
 use serde_json::Value;
 use std::{error::Error, process};
@@ -86,7 +87,7 @@ impl Mod {
         println!("{:?}", file);
         println!("{}", path);
 
-        download_file(&file.url[..], &path[..], &file.filename[..])
+        download_file(file.url.clone(), path, file.filename.clone())
             .await
             .expect("Failed to download the mod.");
 
@@ -108,6 +109,19 @@ pub struct ModVersion {
 }
 
 impl ModVersion {
+    pub async fn new(id: String) -> ModVersion {
+        let version_string = web_get(&format!("https://api.modrinth.com/v2/version/{}", id)[..])
+            .await
+            .expect("Couldn't get a version")
+            .text()
+            .await
+            .expect("Couldn't get a version's text data");
+
+        let version: ModVersion = serde_json::from_str(&version_string)
+            .expect("Couldn't turn a version's JSON data into a ModVersion struct");
+
+        version
+    }
     pub fn time(&self) -> i64 {
         use chrono::prelude::*;
 
@@ -353,21 +367,48 @@ impl MpmMod {
             }
         };
 
-        println!("{:?}", version_to_download);
+        MpmMod::download_specific_version(version_to_download, &instance).await;
+    }
 
-        if version_to_download.dependencies.len() != 0 {
-            println!("Has dependencies!");
-            let required_dependencies: Vec<ModVersionDependencies> = version_to_download
-                .dependencies
+    #[async_recursion]
+    pub async fn download_specific_version(version: ModVersion, instance: &PolyInstance) {
+        let file_to_download = if version.files.len() == 1 {
+            version.files[0].clone()
+        } else {
+            version
+                .files
                 .into_iter()
-                .filter(|v| v.dependency_type == "required")
-                .collect();
+                .find(|f| f.primary == true)
+                .expect("Couldn't find a mod version's primary file")
+        };
 
-            println!(
-                "{} of those are required - {:?}",
-                required_dependencies.len(),
-                required_dependencies
-            )
+        let path = format!(
+            "{}/instances/{}/.minecraft/mods",
+            PolyMC::get_directory(),
+            instance.folder_name
+        );
+
+        println!("Downloading {}", file_to_download.filename);
+        download_file(file_to_download.url, path, file_to_download.filename)
+            .await
+            .expect("Failed to download a mod file");
+
+        let mut deps: Vec<ModVersion> = vec![];
+
+        for dep in version.dependencies {
+            if dep.dependency_type == "required" {
+                deps.push(
+                    ModVersion::new(
+                        dep.version_id
+                            .expect("A version's dependency didn't have an ID"),
+                    )
+                    .await,
+                )
+            }
+        }
+
+        for dep in deps {
+            MpmMod::download_specific_version(dep, &instance).await
         }
     }
 }
