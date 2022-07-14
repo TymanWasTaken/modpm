@@ -1,7 +1,7 @@
 [package]
 name = "modpm"
 version = "1.0.1"
-edition = "2022"
+edition = "2021"
 license = "NPOSL-3.0"
 description = "A Minecraft mod package manager"
 
