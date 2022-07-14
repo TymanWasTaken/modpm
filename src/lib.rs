@@ -109,6 +109,15 @@ impl PolyMC {
                         .expect("Unable to convert Path instance to &str")
                         .to_string();
                 }
+                // Check if the old main dir (~/.local/share/polymc) exists
+                let old_main_dir = format!("{}/.local/share/polymc", home_dir);
+                let old_main_dir = Path::new(&old_main_dir);
+                if old_main_dir.exists() {
+                    return old_main_dir
+                        .to_str()
+                        .expect("Unable to convert Path instance to &str")
+                        .to_string();
+                }
                 // Otherwise, check for the flatpak directory
                 let flatpak_dir = &format!("{}/.var/app/org.polymc.PolyMC/data/PolyMC", home_dir);
                 let flatpak_dir = Path::new(&flatpak_dir);

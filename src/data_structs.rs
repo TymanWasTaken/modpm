@@ -2,7 +2,6 @@ use crate::{ask_user, crash, download_file, format_to_vec_of_strings, web_get, P
 use async_recursion::async_recursion;
 use serde::Deserialize;
 use serde_json::Value;
-use std::{error::Error, process};
 
 #[derive(Debug)]
 pub struct PolyInstance {
@@ -27,72 +26,6 @@ pub struct Mod {
     pub title: String,
     pub versions: Vec<String>,
     pub id: String,
-}
-
-impl Mod {
-    pub async fn new(query: &str) -> Result<Mod, Box<dyn Error>> {
-        let new_data_url =
-            format!("https://api.modrinth.com/v2/project/{}", query).replace("\"", "");
-        let new_data_body = web_get(&new_data_url).await?.text().await?;
-        let new_data: Mod = serde_json::from_str(&new_data_body[..])?;
-
-        Ok(new_data)
-    }
-
-    pub async fn download(&self, instance: PolyInstance) -> Result<(), Box<dyn Error>> {
-        if instance.modloader == "vanilla" {
-            eprintln!("I can't download mods to a vanilla instance.");
-            process::exit(1);
-        }
-
-        let versions: Vec<ModVersion> = serde_json::from_str(
-            &web_get(
-                &format!(
-                    "https://api.modrinth.com/v2/versions?ids={:?}",
-                    self.versions
-                )[..],
-            )
-            .await
-            .expect("Couldn't get the mod's versions info from Modrinth.")
-            .text()
-            .await
-            .expect("Couldn't convert Modrinth version info into text.")[..],
-        )
-        .expect("Couldn't put Modrinth version data into a ModVersion vector.");
-
-        let version = &versions
-            .into_iter()
-            .find(|v| {
-                v.game_versions.contains(&instance.game_version)
-                    && v.loaders.contains(&instance.modloader)
-            })
-            .expect(
-                &format!(
-                    "I couldn't find a version of {} that supports {}.",
-                    self.title, instance.game_version,
-                )[..],
-            );
-
-        let files = &version.files;
-        let file = files
-            .into_iter()
-            .find(|f| f.primary)
-            .expect("Couldn't find a primary file.");
-
-        let path = format!(
-            "{}/instances/{}/.minecraft/mods",
-            PolyMC::get_directory(),
-            instance.folder_name
-        );
-        println!("{:?}", file);
-        println!("{}", path);
-
-        download_file(file.url.clone(), path, file.filename.clone())
-            .await
-            .expect("Failed to download the mod.");
-
-        Ok(())
-    }
 }
 
 #[derive(Deserialize, Debug, Clone)]
