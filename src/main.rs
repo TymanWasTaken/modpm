@@ -14,6 +14,7 @@ fn cli() -> Command<'static> {
             Command::new("query")
                 .about("Queries a mod")
                 .arg(arg!(<MOD> "The mod to query."))
+                .arg(arg!(-v --versions "Show recent versions.").action(clap::ArgAction::SetTrue))
                 .arg_required_else_help(true),
         )
         .subcommand(
@@ -34,7 +35,48 @@ async fn main() {
         Some(("query", sub_matches)) => {
             let mmod = sub_matches.get_one::<String>("MOD").expect("required");
 
-            query_mod(&mmod[..]).await;
+            let versions = sub_matches.get_one::<bool>("versions").expect("how");
+
+            println!("{:?}", versions);
+
+            let mod_data = match MpmMod::new(mmod).await {
+                Ok(data) => data,
+                Err(_) => MpmMod::new_from_hash(mmod).await,
+            };
+
+            println!(
+                "I found {}{}, which is licensed under {}, and located at {}",
+                ansi_term::Color::Green.paint(&mod_data.title),
+                ansi_term::Color::RGB(128, 128, 128).paint(format!(" ({})", mod_data.id)),
+                ansi_term::Color::Green.paint(&mod_data.license.name),
+                ansi_term::Color::RGB(255, 165, 0).paint(&mod_data.source_url)
+            );
+            println!("{}", mod_data.description);
+
+            let mut members: HashMap<String, Vec<String>> = HashMap::new();
+            members.insert("Owner".to_string(), vec![]);
+
+            for member in mod_data.members {
+                let _entry = match members.entry(member.role) {
+                    std::collections::hash_map::Entry::Vacant(role) => {
+                        let new_value = vec![member.user.name.unwrap_or(member.user.username)];
+                        role.insert(new_value);
+                    }
+                    std::collections::hash_map::Entry::Occupied(mut role) => {
+                        role.get_mut()
+                            .push(member.user.name.unwrap_or(member.user.username));
+                    }
+                };
+            }
+
+            println!(
+                "Owner: {}",
+                ansi_term::Color::Purple.paint(members.remove("Owner").unwrap().join(", "))
+            );
+
+            for (role, people) in members {
+                println!("{}: {}", role, people.join(", "));
+            }
         }
         Some(("download", sub_matches)) => {
             let mod_arg = sub_matches.get_one::<String>("MOD").expect("required");
@@ -97,46 +139,5 @@ async fn main() {
                 }
         */
         _ => unreachable!(),
-    }
-}
-
-async fn query_mod(mmod: &str) {
-    let mod_data = match MpmMod::new(mmod).await {
-        Ok(data) => data,
-        Err(_) => MpmMod::new_from_hash(mmod).await,
-    };
-
-    println!(
-        "I found {}{}, which is licensed under {}, and located at {}",
-        ansi_term::Color::Green.paint(&mod_data.title),
-        ansi_term::Color::RGB(128, 128, 128).paint(format!(" ({})", mod_data.id)),
-        ansi_term::Color::Green.paint(&mod_data.license.name),
-        ansi_term::Color::RGB(255, 165, 0).paint(&mod_data.source_url)
-    );
-    println!("{}", mod_data.description);
-
-    let mut members: HashMap<String, Vec<String>> = HashMap::new();
-    members.insert("Owner".to_string(), vec![]);
-
-    for member in mod_data.members {
-        let _entry = match members.entry(member.role) {
-            std::collections::hash_map::Entry::Vacant(role) => {
-                let new_value = vec![member.user.name.unwrap_or(member.user.username)];
-                role.insert(new_value);
-            }
-            std::collections::hash_map::Entry::Occupied(mut role) => {
-                role.get_mut()
-                    .push(member.user.name.unwrap_or(member.user.username));
-            }
-        };
-    }
-
-    println!(
-        "Owner: {}",
-        ansi_term::Color::Purple.paint(members.remove("Owner").unwrap().join(", "))
-    );
-
-    for (role, people) in members {
-        println!("{}: {}", role, people.join(", "));
     }
 }
