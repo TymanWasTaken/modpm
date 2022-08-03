@@ -37,8 +37,6 @@ async fn main() {
 
             let versions = sub_matches.get_one::<bool>("versions").expect("how");
 
-            println!("{:?}", versions);
-
             let mod_data = match MpmMod::new(mmod).await {
                 Ok(data) => data,
                 Err(_) => MpmMod::new_from_hash(mmod).await,
@@ -76,6 +74,9 @@ async fn main() {
 
             for (role, people) in members {
                 println!("{}: {}", role, people.join(", "));
+            }
+            if versions == &true {
+                println!("\n{:?}", mod_data.versions);
             }
         }
         Some(("download", sub_matches)) => {
