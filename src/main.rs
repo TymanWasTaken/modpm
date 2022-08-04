@@ -76,7 +76,19 @@ async fn main() {
                 println!("{}: {}", role, people.join(", "));
             }
             if versions == &true {
-                println!("\n{:?}", mod_data.versions);
+                let mut versions_vec = mod_data.versions.clone();
+                versions_vec.reverse();
+
+                for v in versions_vec {
+                    println!(
+                        "{} {}\n\t├ Game versions: {}\n\t└ Modloaders: {}",
+                        ansi_term::Color::Green.paint(v.name),
+                        ansi_term::Color::RGB(128, 128, 128)
+                            .paint(&format!("({})", v.version_number)[..]),
+                        ansi_term::Color::RGB(139, 69, 19).paint(v.game_versions.join(", ")),
+                        ansi_term::Color::Purple.paint(v.loaders.join(", "))
+                    );
+                }
             }
         }
         Some(("download", sub_matches)) => {
