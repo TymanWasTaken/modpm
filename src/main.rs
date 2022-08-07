@@ -23,6 +23,9 @@ fn cli() -> Command<'static> {
                 .arg(arg!(<MOD> "The mod to download."))
                 .arg_required_else_help(true),
         )
+        .subcommand(
+            Command::new("update").about("Update all of your mods from a specific instance"),
+        )
     // .subcommand(Command::new("polymc").about("testing lmao"))
     // .subcommand(Command::new("test").about("even more testing"))
 }
@@ -131,6 +134,10 @@ async fn main() {
                 .expect("Couldn't find that instance.");
 
             mod_data.download(instance).await;
+        }
+        Some(("update", _)) => {
+            println!("hi! just putting this in here to remind me to do it later lol, it's really not done yet.
+if for whatever reason you've installed this from git, instead of cargo, please yell at me.")
         }
         /*
                 Some(("polymc", _)) => {
