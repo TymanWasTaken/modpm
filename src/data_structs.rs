@@ -1,9 +1,85 @@
+use std::{
+    fs::{self, File},
+    io::ErrorKind,
+};
+
 use crate::{ask_user, crash, download_file, format_to_vec_of_strings, web_get, PolyMC};
 use async_recursion::async_recursion;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-#[derive(Debug)]
+#[derive(Serialize, Deserialize, Debug)]
+pub struct ModpmLockfile {}
+
+impl ModpmLockfile {
+    pub fn add_to_lockfile(instance: PolyInstance, version: ModVersion) {
+        let mut current_lockfile = ModpmLockfile::get_lockfile(instance.clone());
+
+        current_lockfile.push(version);
+
+        let new_lockfile_string =
+            serde_json::to_string(&current_lockfile).expect("Couldn't serialize a lockfile");
+
+        let result = fs::write(
+            format!(
+                "{}/instances/{}/.minecraft/mods/.modpm_lockfile.json",
+                PolyMC::get_directory(),
+                instance.folder_name
+            ),
+            &new_lockfile_string,
+        );
+
+        match result {
+            Ok(_) => {}
+            Err(error) => {
+                if error.kind() == ErrorKind::NotFound {
+                    File::create(format!(
+                        "{}/instances/{}/.minecraft/mods/.modpm_lockfile.json",
+                        PolyMC::get_directory(),
+                        instance.folder_name
+                    ))
+                    .expect("Couldn't create a lockfile");
+                    fs::write(
+                        format!(
+                            "{}/{}/.minecraft/mods/.modpm_lockfile.json",
+                            PolyMC::get_directory(),
+                            instance.folder_name
+                        ),
+                        new_lockfile_string,
+                    )
+                    .expect("something went really really wrong while making a lockfile");
+                } else {
+                    panic!("something went really really wrong while making a lockfile")
+                };
+            }
+        }
+    }
+
+    pub fn get_lockfile(instance: PolyInstance) -> Vec<ModVersion> {
+        let mut current_lockfile_string = "".to_string();
+        let possible_lockfile_string = &fs::read_to_string(format!(
+            "{}/instances/{}/.minecraft/mods/.modpm_lockfile.json",
+            PolyMC::get_directory(),
+            instance.folder_name
+        ));
+        match possible_lockfile_string {
+            Ok(_) => {
+                possible_lockfile_string.as_ref().expect("wtf")[..]
+                    .clone_into(&mut current_lockfile_string);
+            }
+            Err(_) => {
+                "[]".clone_into(&mut current_lockfile_string);
+            }
+        }
+
+        let current_lockfile: Vec<ModVersion> = serde_json::from_str(&current_lockfile_string[..])
+            .expect("Couldn't deserialize a lockfile");
+
+        current_lockfile
+    }
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct PolyInstance {
     pub id: u32,
     pub name: String,
@@ -28,7 +104,7 @@ pub struct Mod {
     pub id: String,
 }
 
-#[derive(Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct ModVersion {
     pub mpm_id: Option<u8>,
     pub id: String,
@@ -64,7 +140,7 @@ impl ModVersion {
     }
 }
 
-#[derive(Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct ModVersionFile {
     pub hashes: ModVersionFileHashes,
     pub url: String,
@@ -72,12 +148,12 @@ pub struct ModVersionFile {
     pub primary: bool,
 }
 
-#[derive(Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct ModVersionFileHashes {
     pub sha512: String,
 }
 
-#[derive(Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct ModVersionDependencies {
     pub version_id: Option<String>,
     pub project_id: Option<String>,
@@ -302,7 +378,9 @@ impl MpmMod {
             }
         };
 
-        MpmMod::download_specific_version(version_to_download, &instance).await;
+        MpmMod::download_specific_version(version_to_download.clone(), &instance).await;
+
+        ModpmLockfile::add_to_lockfile(instance, version_to_download);
     }
 
     #[async_recursion]
