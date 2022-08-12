@@ -1,5 +1,6 @@
 pub mod data_structs;
 pub mod polymc;
+pub mod modrinth;
 
 use polymc::{PolyInstance, PolyInstanceDataJson};
 
