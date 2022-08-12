@@ -1,3 +1,4 @@
+use crate::PolyInstance;
 use std::{
     fs::{self, File},
     io::ErrorKind,
@@ -6,19 +7,18 @@ use std::{
 use crate::{ask_user, crash, download_file, format_to_vec_of_strings, web_get, PolyMC};
 use async_recursion::async_recursion;
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct ModpmLockfile {}
 
 impl ModpmLockfile {
-    pub fn add_to_lockfile(instance: PolyInstance, version: ModVersion) {
+    pub fn add_to_lockfile(instance: PolyInstance, version: &ModVersion) {
         let mut current_lockfile = ModpmLockfile::get_lockfile(instance.clone());
 
-        current_lockfile.push(version);
+        current_lockfile.push(version.clone());
 
         let new_lockfile_string =
-            serde_json::to_string(&current_lockfile).expect("Couldn't serialize a lockfile");
+            json5::to_string(&current_lockfile).expect("Couldn't serialize a lockfile");
 
         let result = fs::write(
             format!(
@@ -72,29 +72,11 @@ impl ModpmLockfile {
             }
         }
 
-        let current_lockfile: Vec<ModVersion> = serde_json::from_str(&current_lockfile_string[..])
-            .expect("Couldn't deserialize a lockfile");
+        let current_lockfile: Vec<ModVersion> =
+            json5::from_str(&current_lockfile_string[..]).expect("Couldn't deserialize a lockfile");
 
         current_lockfile
     }
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct PolyInstance {
-    pub id: u32,
-    pub name: String,
-    pub folder_name: String,
-    pub game_version: String,
-    pub modloader: String,
-}
-#[derive(Deserialize, Debug)]
-pub struct PolyInstanceDataComponent {
-    pub uid: String,
-    pub version: String,
-}
-#[derive(Deserialize)]
-pub struct PolyInstanceDataJson {
-    pub components: Vec<PolyInstanceDataComponent>,
 }
 
 #[derive(Deserialize, Debug)]
@@ -104,7 +86,7 @@ pub struct Mod {
     pub id: String,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct ModVersion {
     pub mpm_id: Option<u8>,
     pub id: String,
@@ -127,7 +109,7 @@ impl ModVersion {
             .await
             .expect("Couldn't get a version's text data");
 
-        let version: ModVersion = serde_json::from_str(&version_string)
+        let version: ModVersion = json5::from_str(&version_string)
             .expect("Couldn't turn a version's JSON data into a ModVersion struct");
 
         version
@@ -140,7 +122,7 @@ impl ModVersion {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct ModVersionFile {
     pub hashes: ModVersionFileHashes,
     pub url: String,
@@ -148,12 +130,12 @@ pub struct ModVersionFile {
     pub primary: bool,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct ModVersionFileHashes {
     pub sha512: String,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct ModVersionDependencies {
     pub version_id: Option<String>,
     pub project_id: Option<String>,
@@ -225,14 +207,13 @@ impl MpmMod {
             return Err("Couldn't find mod");
         }
 
-        let json: Value = serde_json::from_str(&data.text().await.unwrap()[..])
+        let json: serde_json::Value = json5::from_str(&data.text().await.unwrap()[..])
             .expect("Failed to turn the text into a JSON.");
 
         let title = json["title"].as_str().unwrap();
         let id = json["id"].as_str().unwrap();
-        let license: ModrinthLicense =
-            serde_json::from_str(&json["license"].to_string()[..]).unwrap();
-        let versions: Vec<ModVersion> = serde_json::from_str(
+        let license: ModrinthLicense = json5::from_str(&json["license"].to_string()[..]).unwrap();
+        let versions: Vec<ModVersion> = json5::from_str(
             &web_get(
                 &format!(
                     "https://api.modrinth.com/v2/versions?ids={:?}",
@@ -252,13 +233,13 @@ impl MpmMod {
         let source_url = json["source_url"].as_str().unwrap();
 
         let donation_urls: Vec<ModrinthDonationUrls> =
-            serde_json::from_str(&json["donation_urls"].to_string()[..]).unwrap();
+            json5::from_str(&json["donation_urls"].to_string()[..]).unwrap();
 
         let team_url = format!("https://api.modrinth.com/v2/project/{}/members", id);
 
         let team_members_text = web_get(&team_url[..]).await.unwrap().text().await.unwrap();
 
-        let members: Vec<ModrinthTeamMember> = serde_json::from_str(&team_members_text[..])
+        let members: Vec<ModrinthTeamMember> = json5::from_str(&team_members_text[..])
             .expect("Couldn't turn team members into the ModrinthTeamMember struct");
 
         Ok(MpmMod {
@@ -285,7 +266,7 @@ impl MpmMod {
             crash("Couldn't get a mod's version from it's hash.");
         }
 
-        let json: ModVersion = serde_json::from_str(&query.text().await.unwrap()[..]).unwrap();
+        let json: ModVersion = json5::from_str(&query.text().await.unwrap()[..]).unwrap();
 
         MpmMod::new(&json.project_id[..]).await.unwrap()
     }
@@ -378,9 +359,13 @@ impl MpmMod {
             }
         };
 
+        if ModpmLockfile::get_lockfile(instance.clone()).contains(&version_to_download) {
+            crash("you've already downloaded that mod from modpm in this instance");
+        }
+
         MpmMod::download_specific_version(version_to_download.clone(), &instance).await;
 
-        ModpmLockfile::add_to_lockfile(instance, version_to_download);
+        ModpmLockfile::add_to_lockfile(instance, &version_to_download);
     }
 
     #[async_recursion]
@@ -389,6 +374,7 @@ impl MpmMod {
             version.files[0].clone()
         } else {
             version
+                .clone()
                 .files
                 .into_iter()
                 .find(|f| f.primary == true)
@@ -405,6 +391,8 @@ impl MpmMod {
         download_file(file_to_download.url, path, file_to_download.filename)
             .await
             .expect("Failed to download a mod file");
+
+        ModpmLockfile::add_to_lockfile(instance.clone(), &version);
 
         let mut deps: Vec<ModVersion> = vec![];
 

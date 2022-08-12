@@ -11,7 +11,6 @@ repository = "https://github.com/Lisenaaaa/modpm"
 [dependencies]
 reqwest = { version = "0.11", features = ["json", "stream"] }
 tokio = { version = "1", features = ["full"] }
-serde_json = "1.0"
 serde = {version = "1.0.137", features = ["derive"]}
 futures-util = "0.3.14"
 progress_bar = "1.0.2"
@@ -21,3 +20,6 @@ sha2 = "0.10.2"
 hex = "0.4.3"
 chrono = "0.4.19"
 async-recursion = "1.0.0"
+json5 = "0.4.1"
+serde_derive = {version = "1.0.143", features = ["deserialize_in_place"]}
+serde_json = "1.0"

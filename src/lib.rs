@@ -1,10 +1,10 @@
 pub mod data_structs;
+pub mod polymc;
 
-use data_structs::{PolyInstance, PolyInstanceDataJson};
+use polymc::{PolyInstance, PolyInstanceDataJson};
 
 use futures_util::StreamExt;
 use progress_bar::{pb::ProgressBar, Color, Style};
-use serde_json::Value;
 use std::collections::HashMap;
 use std::io::{stdin, stdout, self};
 use std::path::Path;
@@ -24,7 +24,7 @@ async fn web_get(url: &str) -> Result<reqwest::Response, reqwest::Error> {
         .await
 }
 
-pub fn format_to_vec_of_strings(data: &Value) -> Vec<String> {
+pub fn format_to_vec_of_strings(data: &serde_json::Value) -> Vec<String> {
     let mut new_data: Vec<String> = vec![];
 
     if data.is_array() {
