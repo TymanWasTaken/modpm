@@ -161,3 +161,11 @@ pub struct PolyInstanceDataComponent {
 pub struct PolyInstanceDataJson {
     pub components: Vec<PolyInstanceDataComponent>,
 }
+
+impl PolyInstance {
+    pub fn update(&self) -> Result<(), Box<dyn Error>> {
+        println!("this isn't done yet, i'm testing shit with it");
+
+        Ok(())
+    }
+}

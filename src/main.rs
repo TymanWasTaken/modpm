@@ -20,6 +20,10 @@ fn cli() -> Command<'static> {
             Command::new("download")
                 .about("Downloads a mod")
                 .arg(arg!(<MOD> "The mod to download."))
+                .arg(
+                    arg!(-s --specific_version "Download a version of your choice")
+                        .action(clap::ArgAction::SetTrue),
+                )
                 .arg_required_else_help(true),
         )
         .subcommand(
@@ -94,6 +98,10 @@ async fn main() {
             }
         }
         Some(("download", sub_matches)) => {
+            let specific_version = sub_matches
+                .get_one::<bool>("specific_version")
+                .expect("how");
+
             let mod_arg = sub_matches.get_one::<String>("MOD").expect("required");
             let mod_data = match MpmMod::new(mod_arg).await {
                 Ok(data) => data,
@@ -132,11 +140,28 @@ async fn main() {
                 .find(|i| i.id.to_string() == instance_id)
                 .expect("Couldn't find that instance.");
 
-            mod_data.download(instance).await;
+            mod_data.download(instance, *specific_version).await;
         }
         Some(("update", _)) => {
-            println!("hi! just putting this in here to remind me to do it later lol, it's really not done yet.
-if for whatever reason you've installed this from git, instead of cargo, please yell at me.")
+            let instances = PolyMC::get_instances().expect("Couldn't get PolyMC instances.");
+            for instance in &instances {
+                println!(
+                    "{}: {} - {} {}",
+                    instance.id,
+                    ansi_term::Color::Blue.paint(&instance.name),
+                    ansi_term::Color::Purple.paint(&instance.modloader),
+                    ansi_term::Color::Green.paint(&instance.game_version)
+                );
+            }
+
+            let instance_id = ask_user("What instance do you want to download this mod to? ");
+
+            let instance = instances
+                .into_iter()
+                .find(|i| i.id.to_string() == instance_id)
+                .expect("Couldn't find that instance.");
+
+            instance.update().expect("couldn't update :ldancefast:");
         }
         /*
                 Some(("polymc", _)) => {

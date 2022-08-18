@@ -172,25 +172,31 @@ impl MpmMod {
         members.into_iter().find(|m| m.role == "Owner")
     }
 
-    pub async fn download(&self, instance: PolyInstance) {
+    pub async fn download(&self, instance: PolyInstance, choose_version: bool) {
         let versions_base = &self.versions;
+
+        // all the versions of the mod that work with the modloader and current game version
         let versions_filtered = versions_base.into_iter().filter(|v| {
             v.game_versions.contains(&instance.game_version)
                 && v.loaders.contains(&instance.modloader)
         });
 
+        // i blame rust for this
         let mut possible_versions: Vec<ModVersion> = vec![];
 
         for version in versions_filtered {
             possible_versions.push(version.clone());
         }
 
+        // get the latest version's timestamp
         let mut latest_version_timestamp = 0;
         for version in &possible_versions {
             if version.time() > latest_version_timestamp {
                 latest_version_timestamp = version.time()
             }
         }
+
+        // get the latest *version*
         let latest_version = possible_versions
             .clone()
             .into_iter()
@@ -198,7 +204,16 @@ impl MpmMod {
             .unwrap();
 
         let version_to_download: ModVersion;
-        match possible_versions.clone().len() {
+
+        let len;
+        if choose_version {
+            len = 2;
+        } else {
+            len = possible_versions.clone().len()
+        }
+
+        match len {
+            // if there's no versions that work with the instance
             0 => {
                 crash(format!(
                     "I couldn't find a version of {} that matches that instance.",
@@ -218,7 +233,11 @@ impl MpmMod {
                     dependencies: vec![],
                 }
             }
+
+            // if there's one version that works with the instance
             1 => version_to_download = possible_versions[0].clone(),
+
+            // if there's any other number of versions that work with the instance
             _ => {
                 let mut num = 0;
                 let mut versions_with_id: Vec<ModVersion> = vec![];
@@ -262,8 +281,6 @@ impl MpmMod {
         }
 
         MpmMod::download_specific_version(version_to_download.clone(), &instance).await;
-
-        ModpmLockfile::add_to_lockfile(instance, &version_to_download);
     }
 
     #[async_recursion]
