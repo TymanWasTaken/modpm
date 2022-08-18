@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use clap::{arg, Command};
-use modpm::{ask_user, modrinth::MpmMod, PolyMC};
+use modpm::{ask_user, modrinth::MpmMod, polymc::PolyMC};
 
 fn cli() -> Command<'static> {
     Command::new("modpm")

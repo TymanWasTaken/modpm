@@ -1,4 +1,4 @@
-use crate::{parse_cfg_file, crash};
+use crate::{parse_cfg_file, crash, data_structs::ModpmLockfile};
 use std::{error::Error, path::Path, env, fs};
 use serde_derive::{Serialize, Deserialize};
 
@@ -164,7 +164,11 @@ pub struct PolyInstanceDataJson {
 
 impl PolyInstance {
     pub fn update(&self) -> Result<(), Box<dyn Error>> {
-        println!("this isn't done yet, i'm testing shit with it");
+        let lockfile = ModpmLockfile::get_lockfile(self.clone());
+
+        for ver in lockfile {
+            println!("{:?}\n", ver);
+        }
 
         Ok(())
     }

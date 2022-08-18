@@ -1,4 +1,5 @@
-use crate::PolyMC;
+use crate::modrinth::ModVersionFile;
+use crate::polymc::PolyMC;
 use crate::{modrinth::ModVersion, PolyInstance};
 use serde::{Deserialize, Serialize};
 use std::{
@@ -6,14 +7,22 @@ use std::{
     io::ErrorKind,
 };
 
-#[derive(Serialize, Deserialize, Debug)]
 pub struct ModpmLockfile {}
 
+#[derive(Serialize, Deserialize, Debug)]
+pub struct LockfileMod {
+    pub version: ModVersion,
+    pub file: ModVersionFile,
+}
+
 impl ModpmLockfile {
-    pub fn add_to_lockfile(instance: PolyInstance, version: &ModVersion) {
+    pub fn add_to_lockfile(instance: PolyInstance, version: &ModVersion, file: &ModVersionFile) {
         let mut current_lockfile = ModpmLockfile::get_lockfile(instance.clone());
 
-        current_lockfile.push(version.clone());
+        current_lockfile.push(LockfileMod {
+            version: version.clone(),
+            file: file.clone(),
+        });
 
         let new_lockfile_string =
             json5::to_string(&current_lockfile).expect("Couldn't serialize a lockfile");
@@ -53,7 +62,7 @@ impl ModpmLockfile {
         }
     }
 
-    pub fn get_lockfile(instance: PolyInstance) -> Vec<ModVersion> {
+    pub fn get_lockfile(instance: PolyInstance) -> Vec<LockfileMod> {
         let mut current_lockfile_string = "".to_string();
         let possible_lockfile_string = &fs::read_to_string(format!(
             "{}/instances/{}/.minecraft/mods/.modpm_lockfile.json",
@@ -70,7 +79,7 @@ impl ModpmLockfile {
             }
         }
 
-        let current_lockfile: Vec<ModVersion> =
+        let current_lockfile: Vec<LockfileMod> =
             json5::from_str(&current_lockfile_string[..]).expect("Couldn't deserialize a lockfile");
 
         current_lockfile

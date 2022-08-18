@@ -1,6 +1,6 @@
 use crate::{data_structs::ModpmLockfile, PolyInstance};
 
-use crate::{ask_user, crash, download_file, format_to_vec_of_strings, web_get, PolyMC};
+use crate::{ask_user, crash, download_file, format_to_vec_of_strings, polymc::PolyMC, web_get};
 use async_recursion::async_recursion;
 use serde::{Deserialize, Serialize};
 
@@ -274,7 +274,7 @@ impl MpmMod {
 
         if ModpmLockfile::get_lockfile(instance.clone())
             .into_iter()
-            .find(|v| v.project_id == version_to_download.project_id)
+            .find(|v| v.version.project_id == version_to_download.project_id)
             .is_some()
         {
             crash(format!("you've already downloaded that mod from modpm in this instance - if you wanted to update it, please run {}.", ansi_term::Color::RGB(128,128,128).paint("modpm update")));
@@ -285,7 +285,7 @@ impl MpmMod {
 
     #[async_recursion]
     pub async fn download_specific_version(version: ModVersion, instance: &PolyInstance) {
-        let file_to_download = if version.files.len() == 1 {
+        let file_to_download: ModVersionFile = if version.files.len() == 1 {
             version.files[0].clone()
         } else {
             version
@@ -302,12 +302,14 @@ impl MpmMod {
             instance.folder_name
         );
 
+        let i_hate_rust = file_to_download.clone();
+
         println!("Downloading {}", file_to_download.filename);
         download_file(file_to_download.url, path, file_to_download.filename)
             .await
             .expect("Failed to download a mod file");
 
-        ModpmLockfile::add_to_lockfile(instance.clone(), &version);
+        ModpmLockfile::add_to_lockfile(instance.clone(), &version, &i_hate_rust);
 
         let mut deps: Vec<ModVersion> = vec![];
 
