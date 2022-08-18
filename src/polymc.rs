@@ -36,7 +36,7 @@ impl PolyMC {
                         .expect("Unable to convert Path instance to &str")
                         .to_string();
                 }
-                crash("The OS is linux, but neither the default nor the flatpak PolyMC folder locations could be found")
+                crash("The OS is linux, but neither the default nor the flatpak PolyMC folder locations could be found".to_string())
             }
             "macos" => {
                 return format!(

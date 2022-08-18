@@ -159,7 +159,7 @@ impl MpmMod {
 
         let query = web_get(&query_str[..]).await.unwrap();
         if query.status().as_u16() == 404 {
-            crash("Couldn't get a mod's version from it's hash.");
+            crash("Couldn't get a mod's version from it's hash.".to_string());
         }
 
         let json: ModVersion = json5::from_str(&query.text().await.unwrap()[..]).unwrap();
@@ -200,12 +200,10 @@ impl MpmMod {
         let version_to_download: ModVersion;
         match possible_versions.clone().len() {
             0 => {
-                crash(
-                    &format!(
-                        "I couldn't find a version of {} that matches that instance.",
-                        ansi_term::Color::Green.paint(&self.title)
-                    )[..],
-                );
+                crash(format!(
+                    "I couldn't find a version of {} that matches that instance.",
+                    ansi_term::Color::Green.paint(&self.title)
+                ));
 
                 version_to_download = ModVersion {
                     mpm_id: None,
@@ -255,8 +253,12 @@ impl MpmMod {
             }
         };
 
-        if ModpmLockfile::get_lockfile(instance.clone()).contains(&version_to_download) {
-            crash("you've already downloaded that mod from modpm in this instance");
+        if ModpmLockfile::get_lockfile(instance.clone())
+            .into_iter()
+            .find(|v| v.project_id == version_to_download.project_id)
+            .is_some()
+        {
+            crash(format!("you've already downloaded that mod from modpm in this instance - if you wanted to update it, please run {}.", ansi_term::Color::RGB(128,128,128).paint("modpm update")));
         }
 
         MpmMod::download_specific_version(version_to_download.clone(), &instance).await;
