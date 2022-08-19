@@ -49,7 +49,7 @@ impl PolyMC {
                 // this os has so many problems with it i stg
                 return format!(
                     "{}\\AppData\\Roaming\\PolyMC",
-                    env::var("HOME").expect("Couldn't get the $HOME env var.")
+                    env::var("USERPROFILE").expect("Couldn't get the $USERPROFILE env var.")
                 )
             }
             _ => {
