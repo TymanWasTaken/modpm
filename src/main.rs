@@ -26,9 +26,9 @@ fn cli() -> Command<'static> {
                 )
                 .arg_required_else_help(true),
         )
-        .subcommand(
-            Command::new("update").about("Update all of your mods from a specific instance"),
-        )
+    // .subcommand(
+    //     Command::new("update").about("Update all of your mods from a specific instance"),
+    // )
     // .subcommand(Command::new("polymc").about("testing lmao"))
     // .subcommand(Command::new("test").about("even more testing"))
 }
