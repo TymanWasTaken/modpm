@@ -24,7 +24,7 @@ pub struct ModVersionDependencies {
     pub dependency_type: String,
 }
 
-#[derive(Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct MpmMod {
     pub title: String,
     pub id: String,
@@ -51,21 +51,21 @@ pub struct ModVersion {
     pub dependencies: Vec<ModVersionDependencies>,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct ModrinthLicense {
     pub id: String,
     pub name: String,
     pub url: String,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct ModrinthDonationUrls {
     pub id: String,
     pub platform: String,
     pub url: String,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct ModrinthTeamMember {
     pub team_id: String,
     pub user: ModrinthTeamUser,
@@ -74,7 +74,7 @@ pub struct ModrinthTeamMember {
     pub accepted: bool,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct ModrinthTeamUser {
     pub username: String,
     pub name: Option<String>,

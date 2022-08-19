@@ -5,13 +5,14 @@ pub mod polymc;
 use polymc::PolyInstance;
 
 use futures_util::StreamExt;
-use progress_bar::{pb::ProgressBar, Color, Style};
 use sha2::{Digest, Sha512};
 use std::collections::HashMap;
 use std::fs;
 use std::io::{self, stdin, stdout};
 use std::string::String;
-use std::{error::Error, fs::File, io::Write, process, usize};
+use std::{error::Error, fs::File, io::Write, process};
+
+use indicatif::{ProgressBar, ProgressStyle};
 
 async fn web_get(url: &str) -> Result<reqwest::Response, reqwest::Error> {
     reqwest::Client::new()
@@ -49,8 +50,12 @@ pub async fn download_file(
         .content_length()
         .expect("failed to get the content length");
 
-    let mut pb = ProgressBar::new(usize::try_from(total_size)?);
-    pb.set_action("Downloading", Color::LightGreen, Style::Normal);
+    let pb = ProgressBar::new(total_size);
+    pb.set_style(
+        ProgressStyle::with_template("[{wide_bar:.green/magenta}] {bytes}/{total_bytes}")
+            .unwrap()
+            .progress_chars("=>-"),
+    );
 
     let mut file =
         File::create(format!("{}/{}", path, filename)).expect("failed to create the file");
@@ -64,10 +69,10 @@ pub async fn download_file(
 
         let new = std::cmp::min(downloaded + (chunk.len() as u64), total_size);
         downloaded = new;
-        pb.set_progression(usize::try_from(new)?);
+        pb.set_position(new);
     }
 
-    pb.finalize();
+    pb.finish_with_message("Downloaded");
 
     Ok(())
 }

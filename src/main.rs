@@ -161,7 +161,10 @@ async fn main() {
                 .find(|i| i.id.to_string() == instance_id)
                 .expect("Couldn't find that instance.");
 
-            instance.update().expect("couldn't update :ldancefast:");
+            instance
+                .update()
+                .await
+                .expect("couldn't update :ldancefast:");
         }
         /*
                 Some(("polymc", _)) => {

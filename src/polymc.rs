@@ -1,4 +1,4 @@
-use crate::{parse_cfg_file, crash, data_structs::ModpmLockfile};
+use crate::{parse_cfg_file, crash, data_structs::ModpmLockfile, modrinth::MpmMod};
 use std::{error::Error, path::Path, env, fs};
 use serde_derive::{Serialize, Deserialize};
 
@@ -163,11 +163,23 @@ pub struct PolyInstanceDataJson {
 }
 
 impl PolyInstance {
-    pub fn update(&self) -> Result<(), Box<dyn Error>> {
+    pub async fn update(&self) -> Result<(), Box<dyn Error>> {
         let lockfile = ModpmLockfile::get_lockfile(self.clone());
 
-        for ver in lockfile {
-            println!("{:?}\n", ver);
+        // let mut fetched = 0;
+
+        let mut new_lockfile = vec![];
+
+        for mut ver in lockfile {
+            let fetched_mod = MpmMod::new(&ver.version.project_id[..]).await.expect("Couldn't fetch a mod");
+            // fetched += 1;
+            ver.mpm_mod = Some(fetched_mod);
+
+            new_lockfile.push(ver);
+        }
+
+        for ver in new_lockfile {
+            println!("{}", ver.mpm_mod.unwrap().title);
         }
 
         Ok(())

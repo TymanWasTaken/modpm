@@ -1,4 +1,4 @@
-use crate::modrinth::ModVersionFile;
+use crate::modrinth::{ModVersionFile, MpmMod};
 use crate::polymc::PolyMC;
 use crate::{modrinth::ModVersion, PolyInstance};
 use serde::{Deserialize, Serialize};
@@ -13,6 +13,7 @@ pub struct ModpmLockfile {}
 pub struct LockfileMod {
     pub version: ModVersion,
     pub file: ModVersionFile,
+    pub mpm_mod: Option<MpmMod>,
 }
 
 impl ModpmLockfile {
@@ -22,6 +23,7 @@ impl ModpmLockfile {
         current_lockfile.push(LockfileMod {
             version: version.clone(),
             file: file.clone(),
+            mpm_mod: None,
         });
 
         let new_lockfile_string =
