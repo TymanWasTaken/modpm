@@ -311,32 +311,47 @@ impl MpmMod {
 
         ModpmLockfile::add_to_lockfile(instance.clone(), &version, &i_hate_rust);
 
-        let mut deps: Vec<ModVersion> = vec![];
-
         for dep in version.dependencies {
             if dep.dependency_type == "required" {
-                deps.push(
-                    ModVersion::new({
-                        if dep.version_id.is_some() {
-                            dep.version_id.unwrap()
-                        } else {
-                            MpmMod::new(&dep.project_id.expect("A dependency didn't have a version ID or a project ID"))
-                                .await
-                                .expect("Couldn't fetch a dependency's project")
-                                .versions
-                                .into_iter()
-                                .find(|v| v.loaders.contains(&instance.modloader) && v.game_versions.contains(&instance.game_version))
-                                .expect("Couldn't find a dependency version that matches the PolyMC instance")
-                                .id
-                        }
-                    })
-                    .await,
-                )
-            }
-        }
+                let new_dep: Option<ModVersion> = if dep.version_id.is_some() {
+                    Some(ModVersion::new(dep.version_id.expect("how")).await)
+                } else {
+                    println!(
+                        "{}",
+                        ansi_term::Color::RGB(128, 128, 128)
+                            .paint("No version specified, looking for latest compatible version")
+                    );
+                    let fuck = MpmMod::new(
+                        &dep.project_id
+                            .expect("A dependency didn't have a version ID or a project ID"),
+                    )
+                    .await
+                    .expect("Couldn't fetch a dependency's project");
 
-        for dep in deps {
-            MpmMod::download_specific_version(dep, &instance).await
+                    let mut possible_versions: Vec<ModVersion> = vec![];
+
+                    for aaa in &fuck.versions {
+                        let supports_modloader = aaa.loaders.contains(&instance.modloader);
+                        let supports_version = aaa.game_versions.contains(&instance.game_version);
+
+                        if supports_version && supports_modloader {
+                            possible_versions.push(aaa.clone());
+                        };
+                    }
+
+                    if possible_versions.is_empty() {
+                        println!("I couldn't find any versions of {} that support the instance you're trying to download it into. {}, as this dependency was marked as required!", fuck.title, ansi_term::Color::Red.paint("This instance probably won't launch"));
+                        None
+                    } else {
+                        // find latest version
+                        Some(possible_versions.last().expect("how").clone())
+                    }
+                };
+
+                if new_dep.is_some() {
+                    MpmMod::download_specific_version(new_dep.expect("how"), &instance).await
+                }
+            };
         }
     }
 }
